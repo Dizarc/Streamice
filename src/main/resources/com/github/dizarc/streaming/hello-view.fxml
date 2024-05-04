@@ -7,7 +7,7 @@
 <?import javafx.scene.text.Font?>
 
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="547.0" prefWidth="767.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.dizarc.streaming.HelloController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="547.0" prefWidth="767.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.dizarc.streaming.ServerController">
    <children>
       <ListView fx:id="videoListView" layoutX="14.0" layoutY="36.0" prefHeight="427.0" prefWidth="287.0" style="-fx-background-color: lightgray;" />
       <Label alignment="CENTER" layoutX="14.0" layoutY="14.0" prefHeight="18.0" prefWidth="287.0" text="Available Videos">

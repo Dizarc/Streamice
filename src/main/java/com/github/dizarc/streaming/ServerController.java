@@ -2,6 +2,8 @@ package com.github.dizarc.streaming;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.ScrollBar;
 
 public class ServerController {
 
@@ -11,8 +13,8 @@ public class ServerController {
     private Label ClientLabel;
 
     @FXML
-    private Label videoListView;
+    private ListView<String> videoListView;
     @FXML
-    private Label videoScrollBar;
+    private ScrollBar videoScrollBar;
 
 }
