@@ -36,7 +36,15 @@
       <artifactId>junit-jupiter-engine</artifactId>
       <version>${junit.version}</version>
       <scope>test</scope>
-    </dependency>  </dependencies>
+    </dependency>
+
+    <dependency>
+      <groupId>net.bramp.ffmpeg</groupId>
+      <artifactId>ffmpeg</artifactId>
+      <version>0.8.0</version>
+    </dependency>
+
+  </dependencies>
 
   <build>
     <plugins>
@@ -58,7 +66,7 @@
             <!-- Default configuration for running with: mvn clean javafx:run -->
             <id>default-cli</id>
             <configuration>
-              <mainClass>com.github.dizarc.streaming/com.github.dizarc.streaming.HelloApplication</mainClass>
+              <mainClass>com.github.dizarc.streaming/com.github.dizarc.streaming.ServerApplication</mainClass>
               <launcher>app</launcher>
               <jlinkZipName>app</jlinkZipName>
               <jlinkImageName>app</jlinkImageName>
