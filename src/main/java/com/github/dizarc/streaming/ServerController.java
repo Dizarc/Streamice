@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollBar;
 
 import java.net.URL;
@@ -23,8 +24,19 @@ public class ServerController implements Initializable {
     @FXML
     private ScrollBar videoScrollBar;
 
+    @FXML
+    private ProgressBar videoCreationProgress;
+
+    private ServerLogic serverLogic;
+
+    public ServerController(){
+        serverLogic = new ServerLogic();
+    }
+
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+
+        new Thread(() -> serverLogic.createFiles()).start();
 
         initializeList();
 
@@ -32,7 +44,7 @@ public class ServerController implements Initializable {
 
     private void initializeList() {
 
-        File directory = new File("C:\\Users\\faruk\\Desktop\\sxoli\\6mina\\H8 mino\\polumesa\\Streaming\\src\\main\\resources\\videos");
+        File directory = new File("C:\\Users\\faruk\\Desktop\\sxoli\\6mina\\H8 mino\\polumesa\\Streaming\\src\\main\\resources\\Videos");
         File[] files = directory.listFiles();
 
         if (files != null) {
