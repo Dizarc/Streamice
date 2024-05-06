@@ -17,7 +17,7 @@ public class ServerController implements Initializable {
     @FXML
     private Label videosCreatedLabel;
     @FXML
-    private Label ClientLabel;
+    private Label clientLabel;
 
     @FXML
     private ListView<String> videoListView;
@@ -36,20 +36,32 @@ public class ServerController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
 
-        new Thread(() -> serverLogic.createFiles()).start();
-
-        initializeList();
-
+        setList();
+        new Thread(() -> serverLogic.createFiles(this)).start();
     }
 
-    private void initializeList() {
+    public void setList() {
 
-        File directory = new File("C:\\Users\\faruk\\Desktop\\sxoli\\6mina\\H8 mino\\polumesa\\Streaming\\src\\main\\resources\\Videos");
+        File directory = new File(ServerLogic.VIDEOS_DIR);
         File[] files = directory.listFiles();
-
         if (files != null) {
-            for (File file : files)
-                videoListView.getItems().add(file.getName());
+            for (File file : files) {
+                if (!videoListView.getItems().contains(file.getName()))
+                    videoListView.getItems().add(file.getName());
+            }
         }
+        videoListView.getItems().sort(String::compareTo);
+        videoListView.refresh();
     }
+
+    public void setProgressBar(double progress){
+        videoCreationProgress.setProgress(progress);
+    }
+
+    public void setVideosCreatedLabel(String text) {
+        videosCreatedLabel.setStyle("-fx-text-fill: green");
+        videosCreatedLabel.setText(text);
+
+    }
+
 }
