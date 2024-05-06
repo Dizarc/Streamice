@@ -7,8 +7,9 @@ import net.bramp.ffmpeg.FFmpegExecutor;
 import net.bramp.ffmpeg.FFprobe;
 import net.bramp.ffmpeg.builder.FFmpegBuilder;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.*;
 
 /*
@@ -21,7 +22,7 @@ public class ServerLogic {
     static final String VIDEOS_DIR = "C:\\Users\\faruk\\Desktop\\sxoli\\6mina\\H8 mino\\polumesa\\Streaming\\src\\main\\resources\\Videos";
     static final String FFMPEG_DIR = "C:\\Users\\faruk\\Desktop\\sxoli\\6mina\\H8 mino\\polumesa\\ffmpeg\\bin";
 
-    List<Pair<Integer, Integer>> resolutions = Arrays.asList(
+    static final List<Pair<Integer, Integer>> RESOLUTIONS = Arrays.asList(
             new Pair<>(320, 240),
             new Pair<>(640, 360),
             new Pair<>(640, 480),
@@ -29,8 +30,10 @@ public class ServerLogic {
             new Pair<>(1920, 1080)
     );
 
-    String[] formats = {"avi", "mp4", "matroska"};
-    String[] formatEnd = {"avi", "mp4", "mkv"};
+    static final String[] FORMATS = {"avi", "mp4", "matroska"};
+    static final String[] FORMAT_END = {"avi", "mp4", "mkv"};
+
+    static final int SERVER_PORT = 8334;
 
     public void createFiles(ServerController controller) {
         try {
@@ -47,14 +50,17 @@ public class ServerLogic {
                     String[] parts = filename.split("-");
 
                     if (parts.length == 2) {
+
                         String name = parts[0];
                         String[] resolutionFormat = parts[1].split("p\\.");
 
                         if (resolutionFormat.length == 2) {
+
                             int resolution = Integer.parseInt(resolutionFormat[0]);
                             String format = resolutionFormat[1];
 
                             ResolutionFormat currentResFormat = highestRes.get(name);
+
                             if (currentResFormat == null || resolution > currentResFormat.resolution) {
                                 highestRes.put(name, new ResolutionFormat(resolution, format));
                             }
@@ -71,10 +77,9 @@ public class ServerLogic {
 
                 pos++;
                 //Get position of the maximum resolution for each Video
-                int resPos = resolutions.indexOf(resolutions.stream()
+                int resPos = RESOLUTIONS.indexOf(RESOLUTIONS.stream()
                         .filter(pair -> pair.getValue().equals(entry.getValue().resolution))
                         .findFirst().orElse(null));
-
 
                 //threaded does not seem to work for some reason..
                 //new Thread(() -> {
@@ -84,11 +89,13 @@ public class ServerLogic {
 
                                 FFmpegBuilder builder = new FFmpegBuilder()
 
-                                        .setInput(VIDEOS_DIR + "\\" + entry.getKey() + "-" + entry.getValue().resolution + "p." + entry.getValue().format)
+                                        .setInput(VIDEOS_DIR + "\\"
+                                                + entry.getKey() + "-" + entry.getValue().resolution + "p." + entry.getValue().format)
                                         .overrideOutputFiles(false)
-                                        .addOutput(VIDEOS_DIR + "\\" + entry.getKey() + "-" + resolutions.get(i).getValue() + "p." + formatEnd[j])
-                                        .setFormat(formats[j])
-                                        .setVideoResolution(resolutions.get(i).getKey(), resolutions.get(i).getValue())
+                                        .addOutput(VIDEOS_DIR + "\\"
+                                                + entry.getKey() + "-" + RESOLUTIONS.get(i).getValue() + "p." + FORMAT_END[j])
+                                        .setFormat(FORMATS[j])
+                                        .setVideoResolution(RESOLUTIONS.get(i).getKey(), RESOLUTIONS.get(i).getValue())
                                         .done();
 
                                 FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
@@ -97,12 +104,12 @@ public class ServerLogic {
                                 Platform.runLater(controller::setList);
                             }
                         }
-
-
                 //}).start();
+
                 int finalPos = pos;
                 Platform.runLater(() -> controller.setProgressBar((double) finalPos / highestRes.size()));
             }
+
             Platform.runLater(() -> controller.setVideosCreatedLabel("Created all the missing Videos!!"));
 
         } catch (IOException e) {
@@ -120,8 +127,28 @@ public class ServerLogic {
         }
     }
 
-    public boolean openConnection() {
-        return false;
-    }
+    public boolean openConnection(ServerController controller) {
+        try {
+            ServerSocket serverSocket = new ServerSocket(SERVER_PORT);
 
+            while(true){
+
+                Socket socket = serverSocket.accept();
+
+                controller.setClientLabel("Client Accepted!!" +
+                        "Checking Connection...");
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+
+                //have to get client speeds to show him which files he can use.
+                return false;
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
+    }
 }

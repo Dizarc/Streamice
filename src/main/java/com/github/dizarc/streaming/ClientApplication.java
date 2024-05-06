@@ -8,17 +8,17 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 
-public class ServerApplication extends Application {
+public class ClientApplication extends Application {
 
     public static void main(String[] args) {
-        launch();
+        launch(args);
     }
 
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(ServerApplication.class.getResource("server-view.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(ServerApplication.class.getResource("client1-view.fxml"));
         Scene scene = new Scene(fxmlLoader.load());
-        stage.setTitle("Streaming Server");
+        stage.setTitle("Streaming Client");
         stage.setScene(scene);
         stage.show();
 
@@ -27,6 +27,5 @@ public class ServerApplication extends Application {
             System.exit(0);
         });
     }
-
 
 }

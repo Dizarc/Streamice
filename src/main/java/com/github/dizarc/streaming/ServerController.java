@@ -7,7 +7,6 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.control.ScrollBar;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -16,13 +15,14 @@ public class ServerController implements Initializable {
 
     @FXML
     private Label videosCreatedLabel;
+
+
+
     @FXML
     private Label clientLabel;
 
     @FXML
     private ListView<String> videoListView;
-    @FXML
-    private ScrollBar videoScrollBar;
 
     @FXML
     private ProgressBar videoCreationProgress;
@@ -33,9 +33,12 @@ public class ServerController implements Initializable {
         serverLogic = new ServerLogic();
     }
 
+    public void setClientLabel(String text) {
+        clientLabel.setText(text);
+    }
+
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-
         setList();
         new Thread(() -> serverLogic.createFiles(this)).start();
     }
@@ -44,12 +47,14 @@ public class ServerController implements Initializable {
 
         File directory = new File(ServerLogic.VIDEOS_DIR);
         File[] files = directory.listFiles();
+
         if (files != null) {
             for (File file : files) {
                 if (!videoListView.getItems().contains(file.getName()))
                     videoListView.getItems().add(file.getName());
             }
         }
+
         videoListView.getItems().sort(String::compareTo);
         videoListView.refresh();
     }
@@ -61,7 +66,5 @@ public class ServerController implements Initializable {
     public void setVideosCreatedLabel(String text) {
         videosCreatedLabel.setStyle("-fx-text-fill: green");
         videosCreatedLabel.setText(text);
-
     }
-
 }
