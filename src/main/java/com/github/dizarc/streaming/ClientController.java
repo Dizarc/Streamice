@@ -1,8 +1,10 @@
 package com.github.dizarc.streaming;
 
 import javafx.fxml.FXML;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.fxml.Initializable;
+import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 
 import java.net.URL;
@@ -19,15 +21,26 @@ public class ClientController implements Initializable {
     @FXML
     private ProgressBar connectionProgress;
 
-    private ClientLogic clientLogic;
+    @FXML
+    private Label formatChoiceLabel;
 
-    public ClientController(){
-        clientLogic = new ClientLogic();
-    }
+    @FXML
+    private ChoiceBox<String> formatChoiceBox;
+
+    static final String[] FORMATS = {"avi", "mp4", "mkv"};
+
+    @FXML
+    private ListView<String> videoList;
+
+    @FXML
+    private Label videoLabel;
+
+    private ClientLogic clientLogic;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        new Thread(() -> clientLogic.connectToServer(this)).start();
+        formatChoiceBox.getItems().addAll(FORMATS);
+        ClientLogic.testSpeed(this);
     }
 
     public void setServerConnectLabel(String text) {
@@ -42,5 +55,16 @@ public class ClientController implements Initializable {
 
     public void setTestProgressBar(float progress){
         connectionProgress.setProgress(progress);
+    }
+
+    public void setVisibility(){
+        formatChoiceLabel.setVisible(true);
+        formatChoiceBox.setVisible(true);
+        videoList.setVisible(true);
+        videoLabel.setVisible(true);
+    }
+
+    public String getChoice(){
+       return formatChoiceBox.getValue();
     }
 }

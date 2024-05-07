@@ -24,7 +24,7 @@ public class ClientLogic {
     static final String SERVER_HOST = "localhost";
     private final static String SPEED_TEST_SERVER = "ftp://speedtest:speedtest@ftp.otenet.gr/test100Mb.db";
 
-    private double speedtestValue;
+
     private static final Logger LOGGER = Logger.getLogger(ClientLogic.class.getName());
 
     public ClientLogic(){
@@ -37,23 +37,55 @@ public class ClientLogic {
         }
     }
 
-    public boolean connectToServer(ClientController controller){
+    public static void testSpeed(ClientController controller){
+
+        final SpeedTestSocket speedTestSocket = new SpeedTestSocket();
+
+        speedTestSocket.addSpeedTestListener(new ISpeedTestListener() {
+            @Override
+            public void onCompletion(SpeedTestReport speedTestReport) {
+
+                double speedtestValue = speedTestReport.getTransferRateBit().divide(BigDecimal.valueOf(1000000), RoundingMode.CEILING).doubleValue();
+
+                Platform.runLater(() -> controller.setConnectionTestLabel("Connection test: " + speedtestValue +" Mbps", "-fx-text-fill: black"));
+                Platform.runLater(() -> controller.setTestProgressBar((float) 1.0));
+
+                connectToServer(controller, speedtestValue);
+            }
+
+            @Override
+            public void onProgress(float v, SpeedTestReport speedTestReport) {
+                controller.setTestProgressBar((float) (v / 47.5));
+            }
+
+            @Override
+            public void onError(SpeedTestError speedTestError, String s) {
+                LOGGER.severe("Speedtest error: "+ speedTestError +" : " + s);
+            }
+        });
+
+        speedTestSocket.startFixedDownload(SPEED_TEST_SERVER, 5000);
+    }
+
+    public static boolean connectToServer(ClientController controller, double speedtestValue){
         try {
+
             Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
 
-            controller.setServerConnectLabel("Connection to Server established!");
+            Platform.runLater(() -> controller.setServerConnectLabel("Connection to Server established!"));
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
-            testSpeed(controller);
+            Platform.runLater(controller::setVisibility);
 
             String received = "";
             while (true) {
-                //System.out.println(speedtestValue +"H");
-                if(speedtestValue != 0.0 ) {
-                    writer.println("HEY");
-                    System.out.println("haa");
+                if(controller.getChoice() != null) {
+
+                    writer.println(speedtestValue);
+                    writer.println(controller.getChoice());
+
                     received = reader.readLine();
                 }
             }
@@ -66,27 +98,5 @@ public class ClientLogic {
         }
         return false;
     }
-    public void testSpeed(ClientController controller){
 
-        final SpeedTestSocket speedTestSocket = new SpeedTestSocket();
-
-        speedTestSocket.addSpeedTestListener(new ISpeedTestListener() {
-            @Override
-            public void onCompletion(SpeedTestReport speedTestReport) {
-                speedtestValue = speedTestReport.getTransferRateBit().divide(BigDecimal.valueOf(1000000), RoundingMode.CEILING).doubleValue();
-                Platform.runLater(() -> controller.setConnectionTestLabel("Connection test: " + speedtestValue +" Mbps", "-fx-text-fill: black"));
-                Platform.runLater(() -> controller.setTestProgressBar((float) 1.0));
-            }
-            @Override
-            public void onProgress(float v, SpeedTestReport speedTestReport) {
-                controller.setTestProgressBar(v / 49);
-            }
-            @Override
-            public void onError(SpeedTestError speedTestError, String s) {
-                LOGGER.severe("Speedtest error: "+ speedTestError +" : " + s);
-            }
-        });
-
-        speedTestSocket.startFixedDownload(SPEED_TEST_SERVER, 5000);
-    }
 }

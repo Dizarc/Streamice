@@ -31,6 +31,7 @@ public class ServerLogic {
             new Pair<>(1280, 720),
             new Pair<>(1920, 1080)
     );
+
     static final String[] FORMATS = {"avi", "mp4", "matroska"};
     static final String[] FORMAT_END = {"avi", "mp4", "mkv"};
 
@@ -48,7 +49,7 @@ public class ServerLogic {
         }
     }
 
-    public void createFiles(ServerController controller) {
+    public static void createFiles(ServerController controller) {
         try {
             File directory = new File(VIDEOS_DIR);
             File[] files = directory.listFiles();
@@ -145,7 +146,7 @@ public class ServerLogic {
         }
     }
 
-    public void connectionClient(ServerController controller) {
+    public static void connectionClient(ServerController controller) {
         try {
             ServerSocket serverSocket = new ServerSocket(SERVER_PORT);
 
@@ -158,14 +159,21 @@ public class ServerLogic {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
-                    String received = "";
+                    double speedtest;
+                    String format;
                     while (true) {
-                        received = reader.readLine();
-                        System.out.println(received);
+
+                        speedtest = Double.parseDouble(reader.readLine());
+                        format = reader.readLine();
+                        ArrayList<String> allFiles = getFiles(controller,speedtest, format);
+
+                        for(String name: allFiles)
+                            System.out.println(name);
+
+                        System.out.println(format + " " + speedtest);
                     }
 
                     //have to get client speeds to show him which files he can use.
-
 
                 } catch (IOException e) {
                     LOGGER.severe("Client exited: " + e.getMessage());
@@ -176,5 +184,40 @@ public class ServerLogic {
             LOGGER.severe("Error creating server socket: " + e.getMessage());
             System.exit(22);
         }
+    }
+
+    public static ArrayList<String> getFiles(ServerController controller, double speedtest, String format){
+
+        int resolutions = 0;
+
+        if(speedtest >= 3)
+            resolutions = 1080;
+        else if(speedtest > 1.5)
+            resolutions = 720;
+        else if(speedtest > 0.5)
+            resolutions = 480;
+        else if(speedtest > 0.4)
+            resolutions = 360;
+        else if(speedtest > 0.3)
+            resolutions = 240;
+
+        String[] list = controller.getList();
+        ArrayList<String> finalList = new ArrayList<>();
+
+        String pattern = "^(\\w+)-(\\d+)p\\."+ format+"$";
+        Pattern fileNamePattern = Pattern.compile(pattern);
+
+        for (String filename : list) {
+
+            Matcher matcher = fileNamePattern.matcher(filename);
+
+            if(matcher.matches()){
+                int fileResolution = Integer.parseInt(matcher.group(2));
+
+                if(fileResolution <= resolutions)
+                    finalList.add(filename);
+            }
+        }
+        return finalList;
     }
 }

@@ -22,21 +22,17 @@ public class ServerController implements Initializable {
     private Label clientLabel;
 
     @FXML
-    private ListView<String> videoListView;
+    private ListView<String> videoList;
 
     @FXML
     private ProgressBar videoCreationProgress;
 
     private ServerLogic serverLogic;
 
-    public ServerController(){
-        serverLogic = new ServerLogic();
-    }
-
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         setList();
-        new Thread(() -> serverLogic.createFiles(this)).start();
+        new Thread(() -> ServerLogic.createFiles(this)).start();
     }
 
     public void setList() {
@@ -52,16 +48,19 @@ public class ServerController implements Initializable {
 
                 Matcher matcher = fileNamePattern.matcher(file.getName());
                 if(matcher.matches()) {
-                    if (!videoListView.getItems().contains(file.getName()))
+                    if (!videoList.getItems().contains(file.getName()))
 
-                        videoListView.getItems().add(file.getName());
+                        videoList.getItems().add(file.getName());
                 }
             }
         }
-        videoListView.getItems().sort(String::compareTo);
-        videoListView.refresh();
+        videoList.getItems().sort(String::compareTo);
+        videoList.refresh();
     }
 
+    public String[] getList(){
+        return videoList.getItems().toArray(new String[0]);
+    }
     public void setProgressBar(float progress){
         videoCreationProgress.setProgress(progress);
     }

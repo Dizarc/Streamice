@@ -5,6 +5,7 @@ module com.github.dizarc.streaming {
     requires java.logging;
     requires org.apache.commons.lang3;
     requires jspeedtest;
+    requires org.checkerframework.checker.qual;
 
 
     opens com.github.dizarc.streaming to javafx.fxml;
