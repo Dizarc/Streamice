@@ -10,13 +10,13 @@ import javafx.scene.control.ProgressBar;
 
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ServerController implements Initializable {
 
     @FXML
-    private Label videosCreatedLabel;
-
-
+    private Label videosLabel;
 
     @FXML
     private Label clientLabel;
@@ -33,10 +33,6 @@ public class ServerController implements Initializable {
         serverLogic = new ServerLogic();
     }
 
-    public void setClientLabel(String text) {
-        clientLabel.setText(text);
-    }
-
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         setList();
@@ -48,23 +44,35 @@ public class ServerController implements Initializable {
         File directory = new File(ServerLogic.VIDEOS_DIR);
         File[] files = directory.listFiles();
 
+        String pattern = "^(\\w+)-(\\d+)p\\.(\\w+)$";
+        Pattern fileNamePattern = Pattern.compile(pattern);
+
         if (files != null) {
             for (File file : files) {
-                if (!videoListView.getItems().contains(file.getName()))
-                    videoListView.getItems().add(file.getName());
+
+                Matcher matcher = fileNamePattern.matcher(file.getName());
+                if(matcher.matches()) {
+                    if (!videoListView.getItems().contains(file.getName()))
+
+                        videoListView.getItems().add(file.getName());
+                }
             }
         }
-
         videoListView.getItems().sort(String::compareTo);
         videoListView.refresh();
     }
 
-    public void setProgressBar(double progress){
+    public void setProgressBar(float progress){
         videoCreationProgress.setProgress(progress);
     }
 
-    public void setVideosCreatedLabel(String text) {
-        videosCreatedLabel.setStyle("-fx-text-fill: green");
-        videosCreatedLabel.setText(text);
+    public void setVideosLabel(String text, String style) {
+        videosLabel.setText(text);
+        videosLabel.setStyle(style);
+    }
+
+    public void setClientLabel(String text, String style) {
+        clientLabel.setText(text);
+        clientLabel.setStyle(style);
     }
 }

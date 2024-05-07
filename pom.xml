@@ -56,6 +56,13 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- For JSpeedTest -->
+    <dependency>
+      <groupId>fr.bmartel</groupId>
+      <artifactId>jspeedtest</artifactId>
+      <version>1.32.1</version>
+    </dependency>
+
   </dependencies>
 
   <build>

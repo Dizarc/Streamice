@@ -8,15 +8,17 @@ import net.bramp.ffmpeg.FFprobe;
 import net.bramp.ffmpeg.builder.FFmpegBuilder;
 
 import java.io.*;
+
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 
-/*
-    TO - DO:
-    2. For some reason 1080p mkv does not work?
-    3. PLATFORM-> stuff dont work correctly...
- */
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class ServerLogic {
 
     static final String VIDEOS_DIR = "C:\\Users\\faruk\\Desktop\\sxoli\\6mina\\H8 mino\\polumesa\\Streaming\\src\\main\\resources\\Videos";
@@ -29,11 +31,22 @@ public class ServerLogic {
             new Pair<>(1280, 720),
             new Pair<>(1920, 1080)
     );
-
     static final String[] FORMATS = {"avi", "mp4", "matroska"};
     static final String[] FORMAT_END = {"avi", "mp4", "mkv"};
 
     static final int SERVER_PORT = 8334;
+
+    private static final Logger LOGGER = Logger.getLogger(ServerLogic.class.getName());
+
+    public ServerLogic() {
+        try {
+            FileHandler fileHandler = new FileHandler("Server.log");
+            fileHandler.setFormatter(new SimpleFormatter());
+            LOGGER.addHandler(fileHandler);
+        } catch (IOException e) {
+            LOGGER.severe("Failed to setup logging: " + e.getMessage());
+        }
+    }
 
     public void createFiles(ServerController controller) {
         try {
@@ -42,31 +55,33 @@ public class ServerLogic {
 
             Map<String, ResolutionFormat> highestRes = new HashMap<>();
 
-            //Get the highest resolution of each Video and its format and start
-            if (files != null) {
+            //set the pattern of name-resolution.format
+            String pattern = "^(\\w+)-(\\d+)p\\.(\\w+)$";
+            Pattern fileNamePattern = Pattern.compile(pattern);
+
+            //Put the highest resolution and its format for each video into a Map.
+            if (files != null && files.length > 0) {
                 for (File file : files) {
-                    String filename = file.getName();
 
-                    String[] parts = filename.split("-");
+                    Matcher matcher = fileNamePattern.matcher(file.getName());
 
-                    if (parts.length == 2) {
+                    if(matcher.matches()){
+                        String name = matcher.group(1);
+                        int resolution = Integer.parseInt(matcher.group(2));
+                        String format = matcher.group(3);
 
-                        String name = parts[0];
-                        String[] resolutionFormat = parts[1].split("p\\.");
-
-                        if (resolutionFormat.length == 2) {
-
-                            int resolution = Integer.parseInt(resolutionFormat[0]);
-                            String format = resolutionFormat[1];
-
-                            ResolutionFormat currentResFormat = highestRes.get(name);
-
-                            if (currentResFormat == null || resolution > currentResFormat.resolution) {
-                                highestRes.put(name, new ResolutionFormat(resolution, format));
-                            }
+                        ResolutionFormat currentResFormat = highestRes.get(name);
+                        if (currentResFormat == null || resolution > currentResFormat.resolution) {
+                            highestRes.put(name, new ResolutionFormat(resolution, format));
                         }
+                    } else {
+                        LOGGER.info("File: " + file.getName() + " is not named correctly...");
                     }
                 }
+            } else {
+                LOGGER.info("No Videos inside directory...");
+                Platform.runLater(() -> controller.setVideosLabel("There are no videos in the directory!!", "-fx-text-fill: red"));
+                return;
             }
 
             FFmpeg ffmpeg = new FFmpeg(FFMPEG_DIR + "\\ffmpeg.exe");
@@ -74,46 +89,49 @@ public class ServerLogic {
 
             int pos = 0;
             for (Map.Entry<String, ResolutionFormat> entry : highestRes.entrySet()) {
-
                 pos++;
+
                 //Get position of the maximum resolution for each Video
                 int resPos = RESOLUTIONS.indexOf(RESOLUTIONS.stream()
                         .filter(pair -> pair.getValue().equals(entry.getValue().resolution))
                         .findFirst().orElse(null));
 
-                //threaded does not seem to work for some reason..
+                //does not seem to work with threads for some reason..
                 //new Thread(() -> {
-                        //Create all the files with resolutions equal and lower than the max and every other format.
-                        for (int i = 0; i <= resPos; i++) {
-                            for (int j = 0; j < 3; j++) {
+                //Create all the files with resolutions equal and lower than the max and every other format.
+                for (int i = 0; i <= resPos; i++) {
+                    for (int j = 0; j < 3; j++) {
 
-                                FFmpegBuilder builder = new FFmpegBuilder()
+                        FFmpegBuilder builder = new FFmpegBuilder()
+                                .setInput(VIDEOS_DIR + "\\" +
+                                        entry.getKey() + "-" + entry.getValue().resolution + "p." + entry.getValue().format)
+                                .overrideOutputFiles(false)
+                                .addOutput(VIDEOS_DIR + "\\"
+                                        + entry.getKey() + "-" + RESOLUTIONS.get(i).getValue() + "p." + FORMAT_END[j])
+                                .setFormat(FORMATS[j])
+                                .setVideoResolution(RESOLUTIONS.get(i).getKey(), RESOLUTIONS.get(i).getValue())
+                                .done();
 
-                                        .setInput(VIDEOS_DIR + "\\"
-                                                + entry.getKey() + "-" + entry.getValue().resolution + "p." + entry.getValue().format)
-                                        .overrideOutputFiles(false)
-                                        .addOutput(VIDEOS_DIR + "\\"
-                                                + entry.getKey() + "-" + RESOLUTIONS.get(i).getValue() + "p." + FORMAT_END[j])
-                                        .setFormat(FORMATS[j])
-                                        .setVideoResolution(RESOLUTIONS.get(i).getKey(), RESOLUTIONS.get(i).getValue())
-                                        .done();
+                        FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
+                        executor.createJob(builder).run();
 
-                                FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
-                                executor.createJob(builder).run();
-
-                                Platform.runLater(controller::setList);
-                            }
-                        }
+                        Platform.runLater(controller::setList);
+                    }
+                }
                 //}).start();
 
-                int finalPos = pos;
-                Platform.runLater(() -> controller.setProgressBar((double) finalPos / highestRes.size()));
+                float percentage = (float) pos / highestRes.size();
+                Platform.runLater(() -> controller.setProgressBar(percentage));
             }
 
-            Platform.runLater(() -> controller.setVideosCreatedLabel("Created all the missing Videos!!"));
+            Platform.runLater(() -> controller.setVideosLabel("Created all the missing Videos!!", "-fx-text-fill: green"));
+            Platform.runLater(() -> controller.setClientLabel("Waiting for client...", "-fx-text-fill: red"));
+
+            connectionClient(controller);
 
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            LOGGER.severe("FFmpeg error: " + e.getMessage());
+            System.exit(11);
         }
     }
 
@@ -127,28 +145,36 @@ public class ServerLogic {
         }
     }
 
-    public boolean openConnection(ServerController controller) {
+    public void connectionClient(ServerController controller) {
         try {
             ServerSocket serverSocket = new ServerSocket(SERVER_PORT);
 
-            while(true){
+            while (true) {
+                try {
+                    Socket socket = serverSocket.accept();
 
-                Socket socket = serverSocket.accept();
+                    Platform.runLater(() -> controller.setClientLabel("Client Accepted!! \n" + "Checking Connection...", "-fx-text-fill: green"));
 
-                controller.setClientLabel("Client Accepted!!" +
-                        "Checking Connection...");
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+                    String received = "";
+                    while (true) {
+                        received = reader.readLine();
+                        System.out.println(received);
+                    }
 
-                //have to get client speeds to show him which files he can use.
-                return false;
+                    //have to get client speeds to show him which files he can use.
+
+
+                } catch (IOException e) {
+                    LOGGER.severe("Client exited: " + e.getMessage());
+                    Platform.runLater(() -> controller.setClientLabel("Client Exited... \n" + "Waiting for new client...", "-fx-text-fill: red"));
+                }
             }
-
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            LOGGER.severe("Error creating server socket: " + e.getMessage());
+            System.exit(22);
         }
-
-
     }
 }
