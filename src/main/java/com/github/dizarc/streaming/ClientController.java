@@ -8,6 +8,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.ResourceBundle;
 
 public class ClientController implements Initializable {
@@ -64,7 +65,17 @@ public class ClientController implements Initializable {
         videoLabel.setVisible(true);
     }
 
-    public String getChoice(){
+    public void setVideoList(ArrayList<String> fileNames){
+        for(String fileName : fileNames){
+            videoList.getItems().add(fileName);
+        }
+    }
+
+    public ListView<String> getVideoList() {
+        return videoList;
+    }
+
+    public String getFormatChoice(){
        return formatChoiceBox.getValue();
     }
 }

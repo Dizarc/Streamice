@@ -4,16 +4,17 @@ import fr.bmartel.speedtest.SpeedTestReport;
 import fr.bmartel.speedtest.SpeedTestSocket;
 import fr.bmartel.speedtest.inter.ISpeedTestListener;
 import fr.bmartel.speedtest.model.SpeedTestError;
+
 import javafx.application.Platform;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.io.*;
+
 import java.net.Socket;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+import java.util.ArrayList;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -45,6 +46,7 @@ public class ClientLogic {
             @Override
             public void onCompletion(SpeedTestReport speedTestReport) {
 
+                //speedTestValue is in Mbps here
                 double speedtestValue = speedTestReport.getTransferRateBit().divide(BigDecimal.valueOf(1000000), RoundingMode.CEILING).doubleValue();
 
                 Platform.runLater(() -> controller.setConnectionTestLabel("Connection test: " + speedtestValue +" Mbps", "-fx-text-fill: black"));
@@ -74,27 +76,37 @@ public class ClientLogic {
 
             Platform.runLater(() -> controller.setServerConnectLabel("Connection to Server established!"));
 
+            ObjectInputStream objectReader = new ObjectInputStream(socket.getInputStream());
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
             Platform.runLater(controller::setVisibility);
 
             String received = "";
             while (true) {
-                if(controller.getChoice() != null) {
+
+                String formatChoice = controller.getFormatChoice();
+                if(formatChoice != null) {
 
                     writer.println(speedtestValue);
-                    writer.println(controller.getChoice());
+                    writer.println(formatChoice);
+
+                    ArrayList<String> fileNames = (ArrayList<String>) objectReader.readObject();
+
+                    controller.setVideoList(fileNames);
+
+                    controller.getVideoList().getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> writer.println(newValue));
 
                     received = reader.readLine();
                 }
             }
 
-            //have to check speed and return it to the server
-
         } catch (IOException e) {
             LOGGER.severe("Error socket: " + e.getMessage());
             System.exit(21);
+        } catch (ClassNotFoundException e) {
+            LOGGER.severe("Error getting object through socket: " + e.getMessage());
         }
         return false;
     }

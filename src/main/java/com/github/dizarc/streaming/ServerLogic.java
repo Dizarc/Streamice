@@ -19,6 +19,11 @@ import java.util.logging.SimpleFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/*
+    TODO:
+    Now that the client can choose from his listview the video he wants
+     we need to create a new fxml file as soon as he chooses which will bring out a video player that will play the video.
+ */
 public class ServerLogic {
 
     static final String VIDEOS_DIR = "C:\\Users\\faruk\\Desktop\\sxoli\\6mina\\H8 mino\\polumesa\\Streaming\\src\\main\\resources\\Videos";
@@ -32,8 +37,19 @@ public class ServerLogic {
             new Pair<>(1920, 1080)
     );
 
+    //Since mkv's actual name is matroska we cannot use one string array...
     static final String[] FORMATS = {"avi", "mp4", "matroska"};
     static final String[] FORMAT_END = {"avi", "mp4", "mkv"};
+
+    static class ResolutionFormat {
+        int resolution;
+        String format;
+
+        public ResolutionFormat(int resolution, String format) {
+            this.resolution = resolution;
+            this.format = format;
+        }
+    }
 
     static final int SERVER_PORT = 8334;
 
@@ -97,8 +113,9 @@ public class ServerLogic {
                         .filter(pair -> pair.getValue().equals(entry.getValue().resolution))
                         .findFirst().orElse(null));
 
-                //does not seem to work with threads for some reason..
+                //does not seem to work with threads for some reason...
                 //new Thread(() -> {
+
                 //Create all the files with resolutions equal and lower than the max and every other format.
                 for (int i = 0; i <= resPos; i++) {
                     for (int j = 0; j < 3; j++) {
@@ -136,16 +153,6 @@ public class ServerLogic {
         }
     }
 
-    static class ResolutionFormat {
-        int resolution;
-        String format;
-
-        public ResolutionFormat(int resolution, String format) {
-            this.resolution = resolution;
-            this.format = format;
-        }
-    }
-
     public static void connectionClient(ServerController controller) {
         try {
             ServerSocket serverSocket = new ServerSocket(SERVER_PORT);
@@ -154,26 +161,31 @@ public class ServerLogic {
                 try {
                     Socket socket = serverSocket.accept();
 
-                    Platform.runLater(() -> controller.setClientLabel("Client Accepted!! \n" + "Checking Connection...", "-fx-text-fill: green"));
+                    Platform.runLater(() -> controller.setClientLabel("Client Accepted! \n", "-fx-text-fill: green"));
 
                     BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+                    ObjectOutputStream objectWriter = new ObjectOutputStream(socket.getOutputStream());
                     PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
                     double speedtest;
                     String format;
+
+                    String fileName;
                     while (true) {
 
                         speedtest = Double.parseDouble(reader.readLine());
                         format = reader.readLine();
+                        Platform.runLater(() -> controller.setClientLabel("Client chose format. \n" + "Sending files and waiting for client...", "-fx-text-fill: green"));
+
                         ArrayList<String> allFiles = getFiles(controller,speedtest, format);
 
-                        for(String name: allFiles)
-                            System.out.println(name);
+                        objectWriter.writeObject(allFiles);
 
-                        System.out.println(format + " " + speedtest);
+                        fileName = reader.readLine();
+                        System.out.println(fileName);
+
                     }
-
-                    //have to get client speeds to show him which files he can use.
 
                 } catch (IOException e) {
                     LOGGER.severe("Client exited: " + e.getMessage());
@@ -186,19 +198,21 @@ public class ServerLogic {
         }
     }
 
+    //Get files depending on clients speedtest and format
     public static ArrayList<String> getFiles(ServerController controller, double speedtest, String format){
 
         int resolutions = 0;
 
+        // speedtest in Mbps
         if(speedtest >= 3)
             resolutions = 1080;
-        else if(speedtest > 1.5)
+        else if(speedtest >= 1.5)
             resolutions = 720;
-        else if(speedtest > 0.5)
+        else if(speedtest >= 0.5)
             resolutions = 480;
-        else if(speedtest > 0.4)
+        else if(speedtest >= 0.4)
             resolutions = 360;
-        else if(speedtest > 0.3)
+        else if(speedtest >= 0.3)
             resolutions = 240;
 
         String[] list = controller.getList();
