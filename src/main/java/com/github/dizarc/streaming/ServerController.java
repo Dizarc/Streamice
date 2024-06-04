@@ -27,8 +27,6 @@ public class ServerController implements Initializable {
     @FXML
     private ProgressBar videoCreationProgress;
 
-    private ServerLogic serverLogic;
-
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         setList();

@@ -18,29 +18,32 @@ public class ClientController implements Initializable {
 
     @FXML
     private Label connectionTestLabel;
-
     @FXML
     private ProgressBar connectionProgress;
 
     @FXML
-    private Label formatChoiceLabel;
-
+    private Label formatLabel;
     @FXML
-    private ChoiceBox<String> formatChoiceBox;
+    private ChoiceBox<String> formatBox;
 
     static final String[] FORMATS = {"avi", "mp4", "mkv"};
+    static final String[] PROTOCOLS = {"auto","TCP", "UDP", "RTP"};
 
+    @FXML
+    private Label videoLabel;
     @FXML
     private ListView<String> videoList;
 
     @FXML
-    private Label videoLabel;
-
-    private ClientLogic clientLogic;
+    private Label protocolLabel;
+    @FXML
+    private ChoiceBox<String> protocolBox;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        formatChoiceBox.getItems().addAll(FORMATS);
+        formatBox.getItems().addAll(FORMATS);
+        protocolBox.getItems().addAll(PROTOCOLS);
+
         ClientLogic.testSpeed(this);
     }
 
@@ -58,11 +61,19 @@ public class ClientController implements Initializable {
         connectionProgress.setProgress(progress);
     }
 
-    public void setVisibility(){
-        formatChoiceLabel.setVisible(true);
-        formatChoiceBox.setVisible(true);
-        videoList.setVisible(true);
-        videoLabel.setVisible(true);
+    public void setFormatDisable(boolean flag){
+        formatLabel.setDisable(flag);
+        formatBox.setDisable(flag);
+    }
+
+    public void setVideoDisable(boolean flag){
+        videoLabel.setDisable(flag);
+        videoList.setDisable(flag);
+    }
+
+    public void setProtocolDisable(boolean flag){
+        protocolLabel.setDisable(flag);
+        protocolBox.setDisable(flag);
     }
 
     public void setVideoList(ArrayList<String> fileNames){
@@ -74,8 +85,11 @@ public class ClientController implements Initializable {
     public ListView<String> getVideoList() {
         return videoList;
     }
-
-    public String getFormatChoice(){
-       return formatChoiceBox.getValue();
+    public ChoiceBox<String> getFormatBox(){
+        return formatBox;
     }
+    public ChoiceBox<String> getProtocolBox(){
+        return protocolBox;
+    }
+
 }

@@ -20,17 +20,23 @@
             <Font size="18.0" />
          </font>
       </Label>
-      <ChoiceBox fx:id="formatChoiceBox" layoutX="255.0" layoutY="182.0" prefHeight="7.0" prefWidth="120.0" visible="false" />
-      <Label fx:id="formatChoiceLabel" alignment="CENTER" layoutX="255.0" layoutY="157.0" prefHeight="25.0" prefWidth="120.0" text="Pick a format" visible="false">
+      <ChoiceBox fx:id="formatBox" disable="true" layoutX="255.0" layoutY="228.0" prefHeight="7.0" prefWidth="120.0" />
+      <Label fx:id="formatLabel" alignment="CENTER" disable="true" layoutX="255.0" layoutY="203.0" prefHeight="25.0" prefWidth="120.0" text="Pick a format">
          <font>
             <Font size="16.0" />
          </font>
       </Label>
-      <ListView fx:id="videoList" layoutX="465.0" layoutY="182.0" prefHeight="354.0" prefWidth="269.0" style="-fx-background-color: lightgray;" visible="false" />
-      <Label fx:id="videoLabel" alignment="CENTER" layoutX="465.0" layoutY="156.0" prefHeight="25.0" prefWidth="269.0" text="Available Videos" visible="false">
+      <ListView fx:id="videoList" disable="true" layoutX="465.0" layoutY="182.0" prefHeight="354.0" prefWidth="269.0" style="-fx-background-color: lightgray;" />
+      <Label fx:id="videoLabel" alignment="CENTER" disable="true" layoutX="465.0" layoutY="156.0" prefHeight="25.0" prefWidth="269.0" text="Available Videos">
          <font>
             <Font size="18.0" />
          </font>
       </Label>
+      <Label fx:id="protocolLabel" alignment="CENTER" disable="true" layoutX="255.0" layoutY="322.0" prefHeight="25.0" prefWidth="120.0" text="Pick a protocol">
+         <font>
+            <Font size="16.0" />
+         </font>
+      </Label>
+      <ChoiceBox fx:id="protocolBox" disable="true" layoutX="255.0" layoutY="347.0" prefHeight="7.0" prefWidth="120.0" />
    </children>
 </AnchorPane>

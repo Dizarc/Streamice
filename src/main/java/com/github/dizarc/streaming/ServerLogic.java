@@ -168,23 +168,26 @@ public class ServerLogic {
                     ObjectOutputStream objectWriter = new ObjectOutputStream(socket.getOutputStream());
                     PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
-                    double speedtest;
-                    String format;
-
-                    String fileName;
+                    double speedtest = 0;
+                    String format = "";
+                    String fileName = "";
+                    String protocol= "";
                     while (true) {
 
                         speedtest = Double.parseDouble(reader.readLine());
+
                         format = reader.readLine();
+
                         Platform.runLater(() -> controller.setClientLabel("Client chose format. \n" + "Sending files and waiting for client...", "-fx-text-fill: green"));
 
                         ArrayList<String> allFiles = getFiles(controller,speedtest, format);
-
                         objectWriter.writeObject(allFiles);
 
                         fileName = reader.readLine();
-                        System.out.println(fileName);
 
+                        Platform.runLater(() -> controller.setClientLabel("Client chose file. \n" + "waiting for client protocol selection...", "-fx-text-fill: green"));
+
+                        protocol = reader.readLine();
                     }
 
                 } catch (IOException e) {

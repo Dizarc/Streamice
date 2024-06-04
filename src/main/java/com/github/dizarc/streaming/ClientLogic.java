@@ -81,25 +81,44 @@ public class ClientLogic {
 
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
-            Platform.runLater(controller::setVisibility);
+            //Enable format label + box
+            Platform.runLater(() -> controller.setFormatDisable(false));
+
+            //When user selects a format
+            controller.getFormatBox().getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->  {
+
+                writer.println(newValue);
+
+                controller.setFormatDisable(true);
+                controller.setVideoDisable(false);
+            });
+
+            //When user selects video
+            controller.getVideoList().getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->  {
+
+                writer.println(newValue);
+
+                controller.setVideoDisable(true);
+                controller.setProtocolDisable(false);
+            });
+
+            //when user selects a protocol
+            controller.getProtocolBox().getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+                writer.println(newValue);
+
+                controller.setProtocolDisable(true);
+
+            });
 
             String received = "";
             while (true) {
-
-                String formatChoice = controller.getFormatChoice();
-                if(formatChoice != null) {
-
                     writer.println(speedtestValue);
-                    writer.println(formatChoice);
 
                     ArrayList<String> fileNames = (ArrayList<String>) objectReader.readObject();
 
                     controller.setVideoList(fileNames);
 
-                    controller.getVideoList().getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> writer.println(newValue));
-
                     received = reader.readLine();
-                }
             }
 
         } catch (IOException e) {
