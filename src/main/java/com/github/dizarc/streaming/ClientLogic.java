@@ -18,19 +18,27 @@ import java.util.ArrayList;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
-
+/*
+    TODO:
+        1. The application now works only with avi(issues with ffmpeg) make the other formats work aswell.
+        2. Create a reset button which resets the client to right after the speed test so he can choose other videos.
+        3. Make it so when the video finishes the client does 2.
+        4. Create a variable for the ffmpeg streaming port.
+ */
 public class ClientLogic {
 
     static final int SERVER_PORT = 8334;
     static final String SERVER_HOST = "localhost";
     private final static String SPEED_TEST_SERVER = "ftp://speedtest:speedtest@ftp.otenet.gr/test100Mb.db";
 
+    static final String FFMPEG_DIR = "C:\\Users\\faruk\\Desktop\\sxoli\\6mina\\H8 mino\\polumesa\\ffmpeg\\bin";
 
     private static final Logger LOGGER = Logger.getLogger(ClientLogic.class.getName());
+    private static final String LOG_FILE_NAME = "Client.log";
 
     public ClientLogic(){
         try{
-            FileHandler fileHandler = new FileHandler("Client.log");
+            FileHandler fileHandler = new FileHandler(LOG_FILE_NAME);
             fileHandler.setFormatter(new SimpleFormatter());
             LOGGER.addHandler(fileHandler);
         } catch (IOException e) {
@@ -38,7 +46,12 @@ public class ClientLogic {
         }
     }
 
+    /*
+        Tests speed and calls the connection handler when completed.
+     */
     public static void testSpeed(ClientController controller){
+
+        LOGGER.info("Starting speed test...");
 
         final SpeedTestSocket speedTestSocket = new SpeedTestSocket();
 
@@ -46,13 +59,15 @@ public class ClientLogic {
             @Override
             public void onCompletion(SpeedTestReport speedTestReport) {
 
+                LOGGER.info("Finished speed test...");
+
                 //speedTestValue is in Mbps here
                 double speedtestValue = speedTestReport.getTransferRateBit().divide(BigDecimal.valueOf(1000000), RoundingMode.CEILING).doubleValue();
 
-                Platform.runLater(() -> controller.setConnectionTestLabel("Connection test: " + speedtestValue +" Mbps", "-fx-text-fill: black"));
+                Platform.runLater(() -> controller.setConnectionTestLabel(String.valueOf(speedtestValue), "-fx-text-fill: white"));
                 Platform.runLater(() -> controller.setTestProgressBar((float) 1.0));
 
-                connectToServer(controller, speedtestValue);
+                connectionHandler(controller, speedtestValue);
             }
 
             @Override
@@ -66,10 +81,16 @@ public class ClientLogic {
             }
         });
 
-        speedTestSocket.startFixedDownload(SPEED_TEST_SERVER, 5000);
+        speedTestSocket.startFixedDownload(SPEED_TEST_SERVER, 4700);
     }
 
-    public static boolean connectToServer(ClientController controller, double speedtestValue){
+    /*
+        Handles connection and communication with the server.
+     */
+    public static boolean connectionHandler(ClientController controller, double speedTest){
+
+        LOGGER.info("Starting connection...");
+
         try {
 
             Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
@@ -81,11 +102,8 @@ public class ClientLogic {
 
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
-            //Enable format label + box
-            Platform.runLater(() -> controller.setFormatDisable(false));
-
             //When user selects a format
-            controller.getFormatBox().getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->  {
+            controller.getFormatBox().getSelectionModel().selectedItemProperty().addListener((_, _, newValue) ->  {
 
                 writer.println(newValue);
 
@@ -94,7 +112,7 @@ public class ClientLogic {
             });
 
             //When user selects video
-            controller.getVideoList().getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->  {
+            controller.getVideoList().getSelectionModel().selectedItemProperty().addListener((_, _, newValue) ->  {
 
                 writer.println(newValue);
 
@@ -103,22 +121,76 @@ public class ClientLogic {
             });
 
             //when user selects a protocol
-            controller.getProtocolBox().getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            controller.getProtocolBox().getSelectionModel().selectedItemProperty().addListener((_, _, newValue) -> {
+
                 writer.println(newValue);
 
                 controller.setProtocolDisable(true);
-
             });
 
-            String received = "";
+            String received;
             while (true) {
-                    writer.println(speedtestValue);
 
-                    ArrayList<String> fileNames = (ArrayList<String>) objectReader.readObject();
+                writer.println(speedTest);
 
-                    controller.setVideoList(fileNames);
+                //Enable format label + box
+                Platform.runLater(() -> controller.setFormatDisable(false));
 
-                    received = reader.readLine();
+                ArrayList<String> fileNames = (ArrayList<String>) objectReader.readObject();
+
+                controller.setVideoList(fileNames);
+
+                received = reader.readLine();
+
+                if (received.equalsIgnoreCase("READY")) {
+
+                    String protocol = controller.getProtocolBox().getValue();
+                    String fileName = controller.getVideoList().getSelectionModel().getSelectedItem();
+                    System.out.println(fileName);
+                    if (protocol.equalsIgnoreCase("auto")) {
+                        if (fileName.contains("240p"))
+                            protocol = "tcp";
+                        else if (fileName.contains("360p") || fileName.contains("480p"))
+                            protocol = "udp";
+                        else if (fileName.contains("720p") || fileName.contains("1080p"))
+                            protocol = "rtp";
+                    }
+
+                    LOGGER.info("Starting streaming...");
+
+                    String[] ffmpegCommand = {""};
+
+                    if (protocol.equalsIgnoreCase("udp")) {
+
+                        ffmpegCommand = new String[]{
+                                FFMPEG_DIR + "\\" + ".\\ffplay",
+                                "udp://" + socket.getInetAddress().getHostAddress() + ":1234" //+ socket.getPort()
+                        };
+
+                    } else if (protocol.equalsIgnoreCase("tcp")) {
+
+                        ffmpegCommand = new String[]{
+                                FFMPEG_DIR + "\\" + ".\\ffplay",
+                                "tcp://" + socket.getInetAddress().getHostAddress() + ":1234" //+ socket.getPort()
+                        };
+
+                    } else if (protocol.equalsIgnoreCase("rtp")) {
+
+                    }
+
+                    try {
+                        ProcessBuilder processBuilder = new ProcessBuilder(ffmpegCommand);
+
+                        processBuilder.redirectErrorStream(true);
+                        processBuilder.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(LOG_FILE_NAME)));
+                        processBuilder.redirectError(ProcessBuilder.Redirect.appendTo(new File(LOG_FILE_NAME)));
+
+                        processBuilder.start();
+
+                    } catch (IOException e) {
+                        LOGGER.severe("FFmpeg error: " + e.getMessage());
+                    }
+                }
             }
 
         } catch (IOException e) {

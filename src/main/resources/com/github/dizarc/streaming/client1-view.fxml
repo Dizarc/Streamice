@@ -15,7 +15,7 @@
          </font>
       </Label>
       <ProgressBar fx:id="connectionProgress" layoutY="104.0" prefHeight="25.0" prefWidth="750.0" progress="0.0" />
-      <Label fx:id="connectionTestLabel" alignment="CENTER" layoutY="77.0" prefHeight="17.0" prefWidth="750.0" text="Connection test:">
+      <Label alignment="CENTER" layoutY="77.0" prefHeight="17.0" prefWidth="750.0" text="Connection test:">
          <font>
             <Font size="18.0" />
          </font>
@@ -38,5 +38,10 @@
          </font>
       </Label>
       <ChoiceBox fx:id="protocolBox" disable="true" layoutX="255.0" layoutY="347.0" prefHeight="7.0" prefWidth="120.0" />
+      <Label fx:id="connectionTestLabel" alignment="CENTER" layoutY="103.0" prefHeight="17.0" prefWidth="750.0">
+         <font>
+            <Font size="18.0" />
+         </font>
+      </Label>
    </children>
 </AnchorPane>

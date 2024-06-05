@@ -27,7 +27,7 @@ public class ClientController implements Initializable {
     private ChoiceBox<String> formatBox;
 
     static final String[] FORMATS = {"avi", "mp4", "mkv"};
-    static final String[] PROTOCOLS = {"auto","TCP", "UDP", "RTP"};
+    static final String[] PROTOCOLS = {"auto","tcp", "udp", "rtp"};
 
     @FXML
     private Label videoLabel;
@@ -91,5 +91,4 @@ public class ClientController implements Initializable {
     public ChoiceBox<String> getProtocolBox(){
         return protocolBox;
     }
-
 }

@@ -33,6 +33,9 @@ public class ServerController implements Initializable {
         new Thread(() -> ServerLogic.createFiles(this)).start();
     }
 
+    /*
+        initializes the ListView
+     */
     public void setList() {
 
         File directory = new File(ServerLogic.VIDEOS_DIR);
