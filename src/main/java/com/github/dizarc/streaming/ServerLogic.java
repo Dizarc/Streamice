@@ -47,6 +47,7 @@ public class ServerLogic {
     }
 
     static final int SERVER_PORT = 8334;
+    static final int FFMPEG_PORT = 8445;
 
     private static final Logger LOGGER = Logger.getLogger(ServerLogic.class.getName());
     private static final String LOG_FILE_NAME = "Server.log";
@@ -75,7 +76,7 @@ public class ServerLogic {
             String pattern = "^(\\w+)-(\\d+)p\\.(\\w+)$";
             Pattern fileNamePattern = Pattern.compile(pattern);
 
-            LOGGER.info("Started on file creation...");
+            LOGGER.info("Started file creation");
 
             //Put the highest resolution and its format for each video into a Map.
             if (files != null && files.length > 0) {
@@ -93,17 +94,18 @@ public class ServerLogic {
                             highestRes.put(name, new ResolutionFormat(resolution, format));
                         }
                     } else {
-                        LOGGER.info("File: " + file.getName() + " is not named correctly...");
+                        LOGGER.info("File: " + file.getName() + " is not named correctly!");
                     }
                 }
             } else {
 
-                LOGGER.info("No Videos inside directory...");
+                LOGGER.info("No Videos inside directory!");
 
                 Platform.runLater(() -> controller.setVideosLabel("There are no videos in the directory!!", "-fx-text-fill: red"));
                 return;
             }
 
+            LOGGER.info("Initializing ffmpeg for file creation");
             FFmpeg ffmpeg = new FFmpeg(FFMPEG_DIR + "\\ffmpeg.exe");
             FFprobe ffprobe = new FFprobe(FFMPEG_DIR + "\\ffprobe.exe");
 
@@ -148,9 +150,9 @@ public class ServerLogic {
             Platform.runLater(() -> controller.setVideosLabel("Created all the missing Videos!!", "-fx-text-fill: green"));
             Platform.runLater(() -> controller.setClientLabel("Waiting for client...", "-fx-text-fill: red"));
 
-            LOGGER.info("finished file creation.");
+            LOGGER.info("finished file creation");
 
-            connectionHandler(controller);
+            connectionHandler(controller); // CHANGE THIS!!!!
 
         } catch (IOException e) {
             LOGGER.severe("FFmpeg error: " + e.getMessage());
@@ -163,13 +165,15 @@ public class ServerLogic {
      */
     public static void connectionHandler(ServerController controller) {
 
-        LOGGER.info("Starting connection...");
-
         try {
+
+            LOGGER.info("Opening socket");
             ServerSocket serverSocket = new ServerSocket(SERVER_PORT);
 
             while (true) {
                 try {
+                    LOGGER.info("Getting socket connection");
+
                     Socket socket = serverSocket.accept();
 
                     Platform.runLater(() -> controller.setClientLabel("Client Accepted! \n", "-fx-text-fill: green"));
@@ -185,19 +189,27 @@ public class ServerLogic {
                     String protocol;
                     while (true) {
 
+                        LOGGER.info("getting speedtest");
+                        Platform.runLater(() -> controller.setClientLabel("Waiting for speedtest result...", "-fx-text-fill: green"));
                         speedtest = Double.parseDouble(reader.readLine());
 
+                        LOGGER.info("getting format choice");
+                        double finalSpeedtest = speedtest;
+                        Platform.runLater(() -> controller.setClientLabel("Speedtest result: " + finalSpeedtest + "\n" +"Waiting for format selection...", "-fx-text-fill: green"));
                         format = reader.readLine();
 
-                        Platform.runLater(() -> controller.setClientLabel("Client chose format. \n" + "Sending files and waiting for client...", "-fx-text-fill: green"));
-
+                        LOGGER.info("sending videos");
+                        String finalFormat = format;
+                        Platform.runLater(() -> controller.setClientLabel("Client chose format: "+ finalFormat + "\n" + "Sending available files and waiting for choice...", "-fx-text-fill: green"));
                         ArrayList<String> allFiles = getFiles(controller,speedtest, format);
                         objectWriter.writeObject(allFiles);
 
+                        LOGGER.info("getting video choice");
                         fileName = reader.readLine();
 
-                        Platform.runLater(() -> controller.setClientLabel("Client chose file. \n" + "waiting for client protocol selection...", "-fx-text-fill: green"));
-
+                        LOGGER.info("getting protocol choice");
+                        String finalFileName = fileName;
+                        Platform.runLater(() -> controller.setClientLabel("Client chose file: " + finalFileName + "\n" + "waiting for protocol selection...", "-fx-text-fill: green"));
                         protocol = reader.readLine();
 
                         if(protocol.equalsIgnoreCase("auto")) {
@@ -208,40 +220,38 @@ public class ServerLogic {
                             else if(fileName.contains("720p") || fileName.contains("1080p"))
                                 protocol = "rtp";
                         }
-                        System.out.println(protocol);
-                        System.out.println(socket.getRemoteSocketAddress().toString());
-                        System.out.println(socket.getInetAddress().getHostAddress());
 
-                        LOGGER.info("Starting streaming...");
+                        String finalProtocol = protocol;
+                        Platform.runLater(() -> controller.setClientLabel("Chosen protocol: "+ finalProtocol +  "\n" + "Starting streaming...", "-fx-text-fill: green"));
+
+                        LOGGER.info("Starting streaming");
 
                         String[] ffmpegCommand = {""};
+
                         if(protocol.equalsIgnoreCase("udp")){
-                            ffmpegCommand = new String[]{
-                                    FFMPEG_DIR + "\\" + ".\\ffmpeg",
-                                    "-re",
-                                    "-i",
-                                    fileName,
-                                    "-f",
-                                    format,
-                                    "udp://" + socket.getInetAddress().getHostAddress() + ":1234" /*+ socket.getPort()*/
-                            };
 
+                            ffmpegCommand = new String[]{
+                                    FFMPEG_DIR + ".\\ffmpeg",
+                                    "-re", "-i", fileName,
+                                    "-movflags", "frag_keyframe",
+                                    "-f", format,
+                                    "udp://" + socket.getInetAddress().getHostAddress() + ":" + FFMPEG_PORT
+                            };
                         }else if(protocol.equalsIgnoreCase("tcp")){
-                            ffmpegCommand = new String[]{
-                                    FFMPEG_DIR + "\\" + ".\\ffmpeg",
-                                    "-re",
-                                    "-i",
-                                    fileName,
-                                    "-f",
-                                    format,
-                                    "tcp://" + socket.getInetAddress().getHostAddress() + ":1234" /*+ socket.getPort()*/ + "?listen"
-                            };
 
+                            ffmpegCommand = new String[]{
+                                    FFMPEG_DIR + ".\\ffmpeg",
+                                    "-re", "-i", fileName,
+                                    "-movflags", "frag_keyframe",
+                                    "-f", format,
+                                    "tcp://"+ socket.getInetAddress().getHostAddress() + ":"+ FFMPEG_PORT + "?listen"
+                            };
                         }else if(protocol.equalsIgnoreCase("rtp")) {
 
                         }
 
                         try{
+                            LOGGER.info("Creating processBuilder");
                             ProcessBuilder processBuilder = new ProcessBuilder(ffmpegCommand);
 
                             processBuilder.redirectErrorStream(true);
@@ -257,8 +267,9 @@ public class ServerLogic {
 
                             int exitCode = process.waitFor();
 
-
                             LOGGER.info("FFmpeg exited with code: " + exitCode);
+
+                            Platform.runLater(() -> controller.setClientLabel("Streaming finished... \n"+ "Waiting for further instructions...", "-fx-text-fill: green"));
 
                         } catch (IOException | InterruptedException e) {
                             LOGGER.severe("FFmpeg error: " + e.getMessage());
@@ -266,7 +277,7 @@ public class ServerLogic {
                     }
 
                 } catch (IOException e) {
-                    LOGGER.severe("Client exited: " + e.getMessage());
+                    LOGGER.info("Client exited: " + e.getMessage());
                     Platform.runLater(() -> controller.setClientLabel("Client Exited... \n" + "Waiting for new client...", "-fx-text-fill: red"));
                 }
             }

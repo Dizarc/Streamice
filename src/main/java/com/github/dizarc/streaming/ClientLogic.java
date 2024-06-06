@@ -20,10 +20,12 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 /*
     TODO:
-        1. The application now works only with avi(issues with ffmpeg) make the other formats work aswell.
-        2. Create a reset button which resets the client to right after the speed test so he can choose other videos.
-        3. Make it so when the video finishes the client does 2.
-        4. Create a variable for the ffmpeg streaming port.
+        1. For some reason the threads in clientController dont work. Find a way to make them work and also do the same coding in ServerController.
+        (I THINK IT WORKS BUT I HAVE NOT IMPLEMENTED IT IN THE SERVER SIDE)
+        2. BUG FOUND: whenever a client finishes the video and exits i made a reset function which resets everything but that also means that each action listener works because of the changed values.
+        Find a way around it.
+        3. Create a reset button which resets the client to right after the speed test so he can choose other videos.
+        4. Make it so when the video finishes the client does 2.
  */
 public class ClientLogic {
 
@@ -32,6 +34,7 @@ public class ClientLogic {
     private final static String SPEED_TEST_SERVER = "ftp://speedtest:speedtest@ftp.otenet.gr/test100Mb.db";
 
     static final String FFMPEG_DIR = "C:\\Users\\faruk\\Desktop\\sxoli\\6mina\\H8 mino\\polumesa\\ffmpeg\\bin";
+    static final int FFMPEG_PORT = 8445;
 
     private static final Logger LOGGER = Logger.getLogger(ClientLogic.class.getName());
     private static final String LOG_FILE_NAME = "Client.log";
@@ -51,7 +54,7 @@ public class ClientLogic {
      */
     public static void testSpeed(ClientController controller){
 
-        LOGGER.info("Starting speed test...");
+        LOGGER.info("Starting speed test");
 
         final SpeedTestSocket speedTestSocket = new SpeedTestSocket();
 
@@ -59,15 +62,13 @@ public class ClientLogic {
             @Override
             public void onCompletion(SpeedTestReport speedTestReport) {
 
-                LOGGER.info("Finished speed test...");
+                LOGGER.info("Finished speed test");
 
                 //speedTestValue is in Mbps here
                 double speedtestValue = speedTestReport.getTransferRateBit().divide(BigDecimal.valueOf(1000000), RoundingMode.CEILING).doubleValue();
 
                 Platform.runLater(() -> controller.setConnectionTestLabel(String.valueOf(speedtestValue), "-fx-text-fill: white"));
                 Platform.runLater(() -> controller.setTestProgressBar((float) 1.0));
-
-                connectionHandler(controller, speedtestValue);
             }
 
             @Override
@@ -80,19 +81,17 @@ public class ClientLogic {
                 LOGGER.severe("Speedtest error: "+ speedTestError +" : " + s);
             }
         });
-
         speedTestSocket.startFixedDownload(SPEED_TEST_SERVER, 4700);
     }
 
     /*
         Handles connection and communication with the server.
      */
-    public static boolean connectionHandler(ClientController controller, double speedTest){
-
-        LOGGER.info("Starting connection...");
+    public static void connectionHandler(ClientController controller){
 
         try {
 
+            LOGGER.info("Opening socket");
             Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
 
             Platform.runLater(() -> controller.setServerConnectLabel("Connection to Server established!"));
@@ -102,8 +101,24 @@ public class ClientLogic {
 
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
+
+            //When connection test ends
+//            controller.getConnectionTestLabel().textProperty().addListener((_, _, newValue) ->  {
+//
+//                if(!newValue.isEmpty()) {
+//
+//                    LOGGER.info("Sending speed test");
+//
+//                    writer.println(newValue);
+//
+//                    controller.setFormatDisable(false);
+//                }
+//            });
+
             //When user selects a format
             controller.getFormatBox().getSelectionModel().selectedItemProperty().addListener((_, _, newValue) ->  {
+
+                LOGGER.info("Sending format");
 
                 writer.println(newValue);
 
@@ -114,6 +129,8 @@ public class ClientLogic {
             //When user selects video
             controller.getVideoList().getSelectionModel().selectedItemProperty().addListener((_, _, newValue) ->  {
 
+                LOGGER.info("Sending video name");
+
                 writer.println(newValue);
 
                 controller.setVideoDisable(true);
@@ -123,30 +140,33 @@ public class ClientLogic {
             //when user selects a protocol
             controller.getProtocolBox().getSelectionModel().selectedItemProperty().addListener((_, _, newValue) -> {
 
+                LOGGER.info("Sending protocol");
+
                 writer.println(newValue);
 
                 controller.setProtocolDisable(true);
             });
 
+
             String received;
             while (true) {
 
-                writer.println(speedTest);
+                LOGGER.info("Sending speed test");
+                writer.println(Double.parseDouble(controller.getConnectionTestLabel().getText()));
 
-                //Enable format label + box
-                Platform.runLater(() -> controller.setFormatDisable(false));
-
+                controller.setFormatDisable(false);
+                LOGGER.info("Reading files");
                 ArrayList<String> fileNames = (ArrayList<String>) objectReader.readObject();
 
-                controller.setVideoList(fileNames);
+                Platform.runLater(() -> controller.setVideoList(fileNames));
 
+                LOGGER.info("Reading ready message");
                 received = reader.readLine();
 
                 if (received.equalsIgnoreCase("READY")) {
 
                     String protocol = controller.getProtocolBox().getValue();
                     String fileName = controller.getVideoList().getSelectionModel().getSelectedItem();
-                    System.out.println(fileName);
                     if (protocol.equalsIgnoreCase("auto")) {
                         if (fileName.contains("240p"))
                             protocol = "tcp";
@@ -156,7 +176,7 @@ public class ClientLogic {
                             protocol = "rtp";
                     }
 
-                    LOGGER.info("Starting streaming...");
+                    LOGGER.info("Starting streaming");
 
                     String[] ffmpegCommand = {""};
 
@@ -164,14 +184,14 @@ public class ClientLogic {
 
                         ffmpegCommand = new String[]{
                                 FFMPEG_DIR + "\\" + ".\\ffplay",
-                                "udp://" + socket.getInetAddress().getHostAddress() + ":1234" //+ socket.getPort()
+                                "udp://" + socket.getInetAddress().getHostAddress() + ":" + FFMPEG_PORT
                         };
 
                     } else if (protocol.equalsIgnoreCase("tcp")) {
 
                         ffmpegCommand = new String[]{
                                 FFMPEG_DIR + "\\" + ".\\ffplay",
-                                "tcp://" + socket.getInetAddress().getHostAddress() + ":1234" //+ socket.getPort()
+                                "tcp://" + socket.getInetAddress().getHostAddress() + ":" + FFMPEG_PORT
                         };
 
                     } else if (protocol.equalsIgnoreCase("rtp")) {
@@ -179,27 +199,31 @@ public class ClientLogic {
                     }
 
                     try {
+                        LOGGER.info("Creating processBuilder");
                         ProcessBuilder processBuilder = new ProcessBuilder(ffmpegCommand);
 
                         processBuilder.redirectErrorStream(true);
                         processBuilder.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(LOG_FILE_NAME)));
                         processBuilder.redirectError(ProcessBuilder.Redirect.appendTo(new File(LOG_FILE_NAME)));
 
-                        processBuilder.start();
+                        Process process = processBuilder.start();
 
+                        int exitCode = process.waitFor();
+                        LOGGER.info("FFmpeg exited with code: " + exitCode);
+
+                        Platform.runLater(controller::reset);
                     } catch (IOException e) {
                         LOGGER.severe("FFmpeg error: " + e.getMessage());
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
                 }
             }
-
         } catch (IOException e) {
             LOGGER.severe("Error socket: " + e.getMessage());
             System.exit(21);
         } catch (ClassNotFoundException e) {
             LOGGER.severe("Error getting object through socket: " + e.getMessage());
         }
-        return false;
     }
-
 }

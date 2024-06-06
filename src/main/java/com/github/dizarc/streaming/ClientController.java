@@ -44,7 +44,18 @@ public class ClientController implements Initializable {
         formatBox.getItems().addAll(FORMATS);
         protocolBox.getItems().addAll(PROTOCOLS);
 
-        ClientLogic.testSpeed(this);
+        new Thread(() -> ClientLogic.testSpeed(this)).start();
+
+        connectionTestLabel.textProperty().addListener((_, _, t1) ->
+                new Thread(() -> ClientLogic.connectionHandler(ClientController.this)).start()
+        );
+
+    }
+
+    public void reset(){
+        formatBox.setValue(null);
+        videoList.getItems().clear();
+        protocolBox.setValue(null);
     }
 
     public void setServerConnectLabel(String text) {
@@ -90,5 +101,8 @@ public class ClientController implements Initializable {
     }
     public ChoiceBox<String> getProtocolBox(){
         return protocolBox;
+    }
+    public Label getConnectionTestLabel(){
+        return connectionTestLabel;
     }
 }
