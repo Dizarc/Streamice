@@ -22,10 +22,9 @@ import java.util.logging.SimpleFormatter;
     TODO:
         1. For some reason the threads in clientController dont work. Find a way to make them work and also do the same coding in ServerController.
         (I THINK IT WORKS BUT I HAVE NOT IMPLEMENTED IT IN THE SERVER SIDE)
-        2. BUG FOUND: whenever a client finishes the video and exits i made a reset function which resets everything but that also means that each action listener works because of the changed values.
-        Find a way around it.
-        3. Create a reset button which resets the client to right after the speed test so he can choose other videos.
-        4. Make it so when the video finishes the client does 2.
+        2. Create a reset button which resets the client to right after the speed test so he can choose other videos.
+        3. Make it so when the video finishes the client does 2.
+        4. RTP playing issues....
  */
 public class ClientLogic {
 
@@ -81,7 +80,7 @@ public class ClientLogic {
                 LOGGER.severe("Speedtest error: "+ speedTestError +" : " + s);
             }
         });
-        speedTestSocket.startFixedDownload(SPEED_TEST_SERVER, 4700);
+        speedTestSocket.startFixedDownload(SPEED_TEST_SERVER, 1000);
     }
 
     /*
@@ -101,69 +100,58 @@ public class ClientLogic {
 
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
-
-            //When connection test ends
-//            controller.getConnectionTestLabel().textProperty().addListener((_, _, newValue) ->  {
-//
-//                if(!newValue.isEmpty()) {
-//
-//                    LOGGER.info("Sending speed test");
-//
-//                    writer.println(newValue);
-//
-//                    controller.setFormatDisable(false);
-//                }
-//            });
-
             //When user selects a format
             controller.getFormatBox().getSelectionModel().selectedItemProperty().addListener((_, _, newValue) ->  {
 
-                LOGGER.info("Sending format");
+                if(newValue != null) {
+                    LOGGER.info("Sending format");
 
-                writer.println(newValue);
+                    writer.println(newValue);
 
-                controller.setFormatDisable(true);
-                controller.setVideoDisable(false);
+                    controller.setFormatDisable(true);
+                    controller.setVideoDisable(false);
+                }
             });
 
             //When user selects video
             controller.getVideoList().getSelectionModel().selectedItemProperty().addListener((_, _, newValue) ->  {
 
-                LOGGER.info("Sending video name");
+                if(newValue != null) {
+                    LOGGER.info("Sending video name");
 
-                writer.println(newValue);
+                    writer.println(newValue);
 
-                controller.setVideoDisable(true);
-                controller.setProtocolDisable(false);
+                    controller.setVideoDisable(true);
+                    controller.setProtocolDisable(false);
+                }
             });
 
             //when user selects a protocol
             controller.getProtocolBox().getSelectionModel().selectedItemProperty().addListener((_, _, newValue) -> {
 
-                LOGGER.info("Sending protocol");
+                if(newValue != null) {
+                    LOGGER.info("Sending protocol");
 
-                writer.println(newValue);
+                    writer.println(newValue);
 
-                controller.setProtocolDisable(true);
+                    controller.setProtocolDisable(true);
+                }
             });
 
-
-            String received;
             while (true) {
 
                 LOGGER.info("Sending speed test");
                 writer.println(Double.parseDouble(controller.getConnectionTestLabel().getText()));
 
-                controller.setFormatDisable(false);
+                Platform.runLater(() -> controller.setFormatDisable(false));
                 LOGGER.info("Reading files");
                 ArrayList<String> fileNames = (ArrayList<String>) objectReader.readObject();
 
                 Platform.runLater(() -> controller.setVideoList(fileNames));
 
                 LOGGER.info("Reading ready message");
-                received = reader.readLine();
 
-                if (received.equalsIgnoreCase("READY")) {
+                String READY = reader.readLine();
 
                     String protocol = controller.getProtocolBox().getValue();
                     String fileName = controller.getVideoList().getSelectionModel().getSelectedItem();
@@ -195,10 +183,15 @@ public class ClientLogic {
                         };
 
                     } else if (protocol.equalsIgnoreCase("rtp")) {
-
+                        ffmpegCommand = new String[]{
+                                FFMPEG_DIR + "\\" + ".\\ffplay",
+                                "-protocol_whitelist", "file,rtp,udp",
+                                "-i", FFMPEG_DIR + "\\" + "video.sdp"
+                        };
                     }
 
                     try {
+
                         LOGGER.info("Creating processBuilder");
                         ProcessBuilder processBuilder = new ProcessBuilder(ffmpegCommand);
 
@@ -208,8 +201,13 @@ public class ClientLogic {
 
                         Process process = processBuilder.start();
 
+                        writer.println("START");
+
                         int exitCode = process.waitFor();
+
                         LOGGER.info("FFmpeg exited with code: " + exitCode);
+
+                        writer.println("FINISHED");
 
                         Platform.runLater(controller::reset);
                     } catch (IOException e) {
@@ -217,7 +215,6 @@ public class ClientLogic {
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-                }
             }
         } catch (IOException e) {
             LOGGER.severe("Error socket: " + e.getMessage());
