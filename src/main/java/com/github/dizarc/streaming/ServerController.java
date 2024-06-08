@@ -27,6 +27,9 @@ public class ServerController implements Initializable {
     @FXML
     private ProgressBar videoCreationProgress;
 
+    /*
+        Initializes list then creates missing files and finally it starts the socket connection sequence
+     */
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
 
@@ -44,7 +47,6 @@ public class ServerController implements Initializable {
                 ServerLogic.LOGGER.severe("Thread interrupted: " + e.getMessage());
             }
         });
-
         connectionHandlerThread.start();
     }
 

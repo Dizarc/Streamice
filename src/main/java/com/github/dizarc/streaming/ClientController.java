@@ -26,9 +26,6 @@ public class ClientController implements Initializable {
     @FXML
     private ChoiceBox<String> formatBox;
 
-    static final String[] FORMATS = {"avi", "mp4", "mkv"};
-    static final String[] PROTOCOLS = {"auto","tcp", "udp", "rtp"};
-
     @FXML
     private Label videoLabel;
     @FXML
@@ -39,6 +36,9 @@ public class ClientController implements Initializable {
     @FXML
     private ChoiceBox<String> protocolBox;
 
+    static final String[] FORMATS = {"avi", "mp4", "mkv"};
+    static final String[] PROTOCOLS = {"auto", "tcp", "udp", "rtp"};
+
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         formatBox.getItems().addAll(FORMATS);
@@ -47,10 +47,9 @@ public class ClientController implements Initializable {
         new Thread(() -> ClientLogic.testSpeed(this)).start();
 
         //when the speedtest is finished start the connection
-        speedtestLabel.textProperty().addListener((_, _, t1) ->
+        speedtestLabel.textProperty().addListener((_, _, _) ->
                 new Thread(() -> ClientLogic.connectionHandler(ClientController.this)).start()
         );
-
     }
 
     public void reset(){
