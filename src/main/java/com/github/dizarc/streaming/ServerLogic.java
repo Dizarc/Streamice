@@ -98,11 +98,13 @@ public class ServerLogic {
                         LOGGER.info("File: " + file.getName() + " is not named correctly!");
                     }
                 }
-            } else {
+            }
+
+            if(highestRes.isEmpty()) {
 
                 LOGGER.info("No Videos inside directory!");
+                Platform.runLater(() -> controller.setVideosLabel("There are no videos in the directory!", "-fx-text-fill: red"));
 
-                Platform.runLater(() -> controller.setVideosLabel("There are no videos in the directory!!", "-fx-text-fill: red"));
                 return;
             }
 
@@ -213,7 +215,7 @@ public class ServerLogic {
 
                         LOGGER.info("sending videos");
                         String finalFormat = format;
-                        Platform.runLater(() -> controller.setClientLabel("Client chose format: " + finalFormat + "\n" + "Sending available files " + "\n" +"Waiting for choice...", "-fx-text-fill: green"));
+                        Platform.runLater(() -> controller.setClientLabel("Client chose format: " + finalFormat + "\n" + "Sending available files " + "\n" +"Waiting for video choice...", "-fx-text-fill: green"));
 
                         ArrayList<String> allFiles = getFilenamesForClient(controller, speedtest, format);
                         objectWriter.writeObject(allFiles);

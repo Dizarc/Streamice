@@ -19,7 +19,7 @@ public class ServerController implements Initializable {
     private Label videosLabel;
 
     @FXML
-    private Label clientLabel;
+    private Label phaseLabel;
 
     @FXML
     private ListView<String> videoList;
@@ -86,7 +86,7 @@ public class ServerController implements Initializable {
         videosLabel.setStyle(style);
     }
     public void setClientLabel(String text, String style) {
-        clientLabel.setText(text);
-        clientLabel.setStyle(style);
+        phaseLabel.setText(text);
+        phaseLabel.setStyle(style);
     }
 }

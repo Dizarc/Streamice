@@ -80,7 +80,7 @@ public class ClientLogic {
                 LOGGER.severe("Speedtest error: "+ speedTestError +" : " + s);
             }
         });
-        speedTestSocket.startFixedDownload(SPEED_TEST_SERVER, 1000);
+        speedTestSocket.startFixedDownload(SPEED_TEST_SERVER, 5000);
     }
 
     /*
@@ -95,8 +95,6 @@ public class ClientLogic {
             LOGGER.info("Connecting to server socket");
             Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
 
-            Platform.runLater(() -> controller.setServerConnectLabel("Connection to Server established!"));
-
             ObjectInputStream objectReader = new ObjectInputStream(socket.getInputStream());
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
@@ -109,6 +107,8 @@ public class ClientLogic {
                     LOGGER.info("Sending format");
 
                     writer.println(newValue);
+
+                    controller.setServerLabel("Choose a video", "-fx-text-fill: green");
 
                     controller.setFormatDisable(true);
                     controller.setVideoDisable(false);
@@ -123,6 +123,8 @@ public class ClientLogic {
 
                     writer.println(newValue);
 
+                    controller.setServerLabel("Choose a protocol", "-fx-text-fill: green");
+
                     controller.setVideoDisable(true);
                     controller.setProtocolDisable(false);
                 }
@@ -136,6 +138,8 @@ public class ClientLogic {
 
                     writer.println(newValue);
 
+                    controller.setServerLabel("Playing video...", "-fx-text-fill: green");
+
                     controller.setProtocolDisable(true);
                 }
             });
@@ -144,6 +148,8 @@ public class ClientLogic {
 
                 LOGGER.info("Sending speed test");
                 writer.println(Double.parseDouble(controller.getSpeedtestLabel().getText()));
+
+                Platform.runLater(() -> controller.setServerLabel("Connection to Server established!" + "\n" +"Choose a format", "-fx-text-fill: green"));
 
                 Platform.runLater(() -> controller.setFormatDisable(false));
 
@@ -213,12 +219,12 @@ public class ClientLogic {
                     } catch (IOException e) {
                         LOGGER.severe("FFmpeg error: " + e.getMessage());
                     } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
+                        LOGGER.severe("FFmpeg process error: " + e.getMessage());
                     }
             }
         } catch (IOException e) {
-            LOGGER.severe("Error socket: " + e.getMessage());
-            System.exit(21);
+            LOGGER.severe("Error connecting to the server: " + e.getMessage());
+            Platform.runLater(() -> controller.setServerLabel("Connection to the server could not be established!", "-fx-text-fill: red"));
         } catch (ClassNotFoundException e) {
             LOGGER.severe("Error getting object through socket: " + e.getMessage());
         }

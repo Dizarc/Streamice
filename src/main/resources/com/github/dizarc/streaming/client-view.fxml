@@ -9,13 +9,13 @@
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="550.0" prefWidth="750.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.dizarc.streaming.ClientController">
    <children>
-      <Label fx:id="serverConnectLabel" alignment="CENTER" layoutY="14.0" prefHeight="17.0" prefWidth="750.0" text="Testing connection and connecting to the Server...">
+      <Label fx:id="serverLabel" alignment="TOP_CENTER" layoutY="14.0" prefHeight="63.0" prefWidth="750.0" text="Testing connection and connecting to the Server...">
          <font>
-            <Font size="24.0" />
+            <Font size="21.0" />
          </font>
       </Label>
       <ProgressBar fx:id="connectionProgress" layoutY="104.0" prefHeight="25.0" prefWidth="750.0" progress="0.0" />
-      <Label alignment="CENTER" layoutY="77.0" prefHeight="17.0" prefWidth="750.0" text="Connection test:">
+      <Label alignment="CENTER" layoutY="77.0" prefHeight="27.0" prefWidth="750.0" text="Connection test:">
          <font>
             <Font size="18.0" />
          </font>

@@ -14,7 +14,7 @@ import java.util.ResourceBundle;
 public class ClientController implements Initializable {
 
     @FXML
-    private Label serverConnectLabel;
+    private Label serverLabel;
 
     @FXML
     private Label speedtestLabel;
@@ -72,9 +72,9 @@ public class ClientController implements Initializable {
         return speedtestLabel;
     }
 
-    public void setServerConnectLabel(String text) {
-        serverConnectLabel.setText(text);
-        serverConnectLabel.setStyle("-fx-text-fill: green");
+    public void setServerLabel(String text, String style) {
+        serverLabel.setText(text);
+        serverLabel.setStyle(style);
     }
     public void setConnectionTestLabel(String text, String style) {
         speedtestLabel.setText(text);
