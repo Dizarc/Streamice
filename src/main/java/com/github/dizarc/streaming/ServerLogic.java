@@ -49,12 +49,12 @@ public class ServerLogic {
     static final int SERVER_PORT = 8334;
     static final int FFMPEG_PORT = 8445;
 
-    private static final Logger LOGGER = Logger.getLogger(ServerLogic.class.getName());
-    private static final String LOG_FILE_NAME = "Server.log";
+    static final Logger LOGGER = Logger.getLogger(ServerLogic.class.getName());
+    private static final String LOG_FILE = "Server.log";
 
-    public ServerLogic() {
+    static {
         try {
-            FileHandler fileHandler = new FileHandler(LOG_FILE_NAME);
+            FileHandler fileHandler = new FileHandler(LOG_FILE);
             fileHandler.setFormatter(new SimpleFormatter());
             LOGGER.addHandler(fileHandler);
         } catch (IOException e) {
@@ -65,7 +65,10 @@ public class ServerLogic {
     /*
         Creates the extra files and when completed calls the connection Handler.
      */
-    public static void createFiles(ServerController controller) {
+    public static void fileCreation(ServerController controller) {
+
+        LOGGER.info("Started file creation");
+
         try {
             File directory = new File(VIDEOS_DIR);
             File[] files = directory.listFiles();
@@ -76,15 +79,13 @@ public class ServerLogic {
             String pattern = "^(\\w+)-(\\d+)p\\.(\\w+)$";
             Pattern fileNamePattern = Pattern.compile(pattern);
 
-            LOGGER.info("Started file creation");
-
             //Put the highest resolution and its format for each video into a Map.
             if (files != null && files.length > 0) {
                 for (File file : files) {
 
                     Matcher matcher = fileNamePattern.matcher(file.getName());
 
-                    if(matcher.matches()){
+                    if (matcher.matches()) {
                         String name = matcher.group(1);
                         int resolution = Integer.parseInt(matcher.group(2));
                         String format = matcher.group(3);
@@ -105,7 +106,22 @@ public class ServerLogic {
                 return;
             }
 
-            LOGGER.info("Initializing ffmpeg for file creation");
+            createFiles(controller, highestRes);
+
+        } catch (NullPointerException e) {
+            LOGGER.severe("directory error: " + e.getMessage());
+            System.exit(11);
+        }
+    }
+
+    /*
+        Creates all the missing files using ffmpeg
+     */
+    private static void createFiles(ServerController controller, Map<String, ResolutionFormat> highestRes) {
+
+        LOGGER.info("using ffmpeg for file creation");
+
+        try {
             FFmpeg ffmpeg = new FFmpeg(FFMPEG_DIR + "\\ffmpeg.exe");
             FFprobe ffprobe = new FFprobe(FFMPEG_DIR + "\\ffprobe.exe");
 
@@ -117,9 +133,6 @@ public class ServerLogic {
                 int resPos = RESOLUTIONS.indexOf(RESOLUTIONS.stream()
                         .filter(pair -> pair.getValue().equals(entry.getValue().resolution))
                         .findFirst().orElse(null));
-
-                //does not seem to work with threads for some reason...
-                //new Thread(() -> {
 
                 //Create all the files with resolutions equal and lower than the max and every other format.
                 for (int i = 0; i <= resPos; i++) {
@@ -133,6 +146,7 @@ public class ServerLogic {
                                         + entry.getKey() + "-" + RESOLUTIONS.get(i).getValue() + "p." + FORMAT_END[j])
                                 .setFormat(FORMATS[j])
                                 .setVideoResolution(RESOLUTIONS.get(i).getKey(), RESOLUTIONS.get(i).getValue())
+                                .addExtraArgs("-loglevel", "error")
                                 .done();
 
                         FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
@@ -141,7 +155,7 @@ public class ServerLogic {
                         Platform.runLater(controller::setList);
                     }
                 }
-                //}).start();
+
 
                 float percentage = (float) pos / highestRes.size();
                 Platform.runLater(() -> controller.setProgressBar(percentage));
@@ -152,11 +166,8 @@ public class ServerLogic {
 
             LOGGER.info("finished file creation");
 
-            connectionHandler(controller); // CHANGE THIS!!!!
-
         } catch (IOException e) {
-            LOGGER.severe("FFmpeg error: " + e.getMessage());
-            System.exit(11);
+            throw new RuntimeException(e);
         }
     }
 
@@ -164,6 +175,8 @@ public class ServerLogic {
         Handles the connection and communication with the client.
      */
     public static void connectionHandler(ServerController controller) {
+
+        LOGGER.info("Starting connection handler");
 
         try {
 
@@ -195,17 +208,18 @@ public class ServerLogic {
 
                         LOGGER.info("getting format choice");
                         double finalSpeedtest = speedtest;
-                        Platform.runLater(() -> controller.setClientLabel("Speedtest result: " + finalSpeedtest + "\n" +"Waiting for format selection...", "-fx-text-fill: green"));
+                        Platform.runLater(() -> controller.setClientLabel("Speedtest result: " + finalSpeedtest + "\n" + "Waiting for format selection...", "-fx-text-fill: green"));
                         format = reader.readLine();
 
                         LOGGER.info("sending videos");
                         String finalFormat = format;
-                        Platform.runLater(() -> controller.setClientLabel("Client chose format: "+ finalFormat + "\n" + "Sending available files and waiting for choice...", "-fx-text-fill: green"));
-                        ArrayList<String> allFiles = getFiles(controller,speedtest, format);
+                        Platform.runLater(() -> controller.setClientLabel("Client chose format: " + finalFormat + "\n" + "Sending available files " + "\n" +"Waiting for choice...", "-fx-text-fill: green"));
+
+                        ArrayList<String> allFiles = getFilenamesForClient(controller, speedtest, format);
                         objectWriter.writeObject(allFiles);
 
                         //because .mkv has its name as matroska
-                        if(format.equalsIgnoreCase("mkv"))
+                        if (format.equalsIgnoreCase("mkv"))
                             format = "matroska";
 
                         LOGGER.info("getting video choice");
@@ -216,23 +230,23 @@ public class ServerLogic {
                         Platform.runLater(() -> controller.setClientLabel("Client chose file: " + finalFileName + "\n" + "waiting for protocol selection...", "-fx-text-fill: green"));
                         protocol = reader.readLine();
 
-                        if(protocol.equalsIgnoreCase("auto")) {
+                        if (protocol.equalsIgnoreCase("auto")) {
                             if (fileName.contains("240p"))
                                 protocol = "tcp";
-                            else if(fileName.contains("360p") || fileName.contains("480p"))
+                            else if (fileName.contains("360p") || fileName.contains("480p"))
                                 protocol = "udp";
-                            else if(fileName.contains("720p") || fileName.contains("1080p"))
+                            else if (fileName.contains("720p") || fileName.contains("1080p"))
                                 protocol = "rtp";
                         }
 
                         String finalProtocol = protocol;
-                        Platform.runLater(() -> controller.setClientLabel("Chosen protocol: "+ finalProtocol +  "\n" + "Starting streaming...", "-fx-text-fill: green"));
+                        Platform.runLater(() -> controller.setClientLabel("Chosen protocol: " + finalProtocol + "\n" + "Starting streaming...", "-fx-text-fill: green"));
 
                         LOGGER.info("Starting streaming");
 
                         String[] ffmpegCommand = {""};
 
-                        if(protocol.equalsIgnoreCase("udp")){
+                        if (protocol.equalsIgnoreCase("udp")) {
 
                             ffmpegCommand = new String[]{
                                     FFMPEG_DIR + ".\\ffmpeg",
@@ -240,9 +254,9 @@ public class ServerLogic {
                                     "-i", fileName,
                                     "-movflags", "frag_keyframe", //fragmentation
                                     "-f", "mpegts", //transport using MPEG-TS
-                                    "udp://" + socket.getInetAddress().getHostAddress() + ":" + FFMPEG_PORT
+                                    "udp://" + socket.getInetAddress().getHostAddress() + ":" + FFMPEG_PORT,
                             };
-                        }else if(protocol.equalsIgnoreCase("tcp")){
+                        } else if (protocol.equalsIgnoreCase("tcp")) {
 
                             ffmpegCommand = new String[]{
                                     FFMPEG_DIR + ".\\ffmpeg",
@@ -250,43 +264,41 @@ public class ServerLogic {
                                     "-i", fileName,
                                     "-movflags", "frag_keyframe",
                                     "-f", format,
-                                    "tcp://"+ socket.getInetAddress().getHostAddress() + ":"+ FFMPEG_PORT + "?listen"
+                                    "tcp://" + socket.getInetAddress().getHostAddress() + ":" + FFMPEG_PORT + "?listen",
                             };
-                        }else if(protocol.equalsIgnoreCase("rtp")) {
+                        } else if (protocol.equalsIgnoreCase("rtp")) {
 
                             ffmpegCommand = new String[]{
                                     FFMPEG_DIR + ".\\ffmpeg",
                                     "-re", "-i", fileName,
                                     "-movflags", "frag_keyframe",
-                                    "-sdp_file", FFMPEG_DIR + "\\" + "video.sdp", //create an sdp file
-                                    "-an", //video without audio
-                                    "-vcodec", "copy", //copy video stream
-                                    "-f", "rtp", "rtp://"+ socket.getInetAddress().getHostAddress() + ":"+ FFMPEG_PORT,
-                                    "-vn", //audio without video
-                                    "-acodec", "copy", //copy audio stream
-                                    "-f", "rtp", "rtp://"+ socket.getInetAddress().getHostAddress() + ":" + (FFMPEG_PORT + 2)
+                                    "-c:v", "copy", "-c:a", "copy",
+                                    "-f", "rtp_mpegts",
+                                    "\"rtp://" + socket.getInetAddress().getHostAddress() + ":" + FFMPEG_PORT + "\""
                             };
                         }
 
                         writer.println("READY");
                         String START = reader.readLine();
 
-                        try{
+                        try {
                             LOGGER.info("Creating processBuilder");
                             ProcessBuilder processBuilder = new ProcessBuilder(ffmpegCommand);
 
                             processBuilder.redirectErrorStream(true);
-                            processBuilder.redirectOutput(ProcessBuilder.Redirect.appendTo(new File("FFMPEG" + LOG_FILE_NAME)));
-                            processBuilder.redirectError(ProcessBuilder.Redirect.appendTo(new File("FFMPEG" + LOG_FILE_NAME)));
+                            processBuilder.redirectOutput(ProcessBuilder.Redirect.to(new File("FfmpegOUT" + LOG_FILE)));
+                            processBuilder.redirectError(ProcessBuilder.Redirect.to(new File("FfmpegERROR" + LOG_FILE)));
 
                             processBuilder.directory(new File(VIDEOS_DIR));
 
-                            processBuilder.start();
+                            Process process = processBuilder.start();
 
                             String FINISHED = reader.readLine();
 
+                            process.destroy();
+
                             LOGGER.info("Streaming done");
-                            Platform.runLater(() -> controller.setClientLabel("Streaming finished... \n"+ "Waiting for further instructions...", "-fx-text-fill: green"));
+                            Platform.runLater(() -> controller.setClientLabel("Streaming finished... \n" + "Waiting for further instructions...", "-fx-text-fill: green"));
 
                         } catch (IOException e) {
                             LOGGER.severe("FFmpeg error: " + e.getMessage());
@@ -305,22 +317,22 @@ public class ServerLogic {
     }
 
     /*
-        Get files depending on clients speedtest and format.
+        Get filenames depending on clients speedtest and format.
      */
-    public static ArrayList<String> getFiles(ServerController controller, double speedtest, String format){
+    public static ArrayList<String> getFilenamesForClient(ServerController controller, double speedtest, String format) {
 
         int resolutions = 0;
 
         // speedtest in Mbps
-        if(speedtest >= 3)
+        if (speedtest >= 3)
             resolutions = 1080;
-        else if(speedtest >= 1.5)
+        else if (speedtest >= 1.5)
             resolutions = 720;
-        else if(speedtest >= 0.5)
+        else if (speedtest >= 0.5)
             resolutions = 480;
-        else if(speedtest >= 0.4)
+        else if (speedtest >= 0.4)
             resolutions = 360;
-        else if(speedtest >= 0.3)
+        else if (speedtest >= 0.3)
             resolutions = 240;
 
         String[] list = controller.getList();
@@ -333,10 +345,10 @@ public class ServerLogic {
 
             Matcher matcher = fileNamePattern.matcher(filename);
 
-            if(matcher.matches()){
+            if (matcher.matches()) {
                 int fileResolution = Integer.parseInt(matcher.group(2));
 
-                if(fileResolution <= resolutions)
+                if (fileResolution <= resolutions)
                     finalList.add(filename);
             }
         }

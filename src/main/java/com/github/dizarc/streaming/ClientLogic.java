@@ -36,11 +36,11 @@ public class ClientLogic {
     static final int FFMPEG_PORT = 8445;
 
     private static final Logger LOGGER = Logger.getLogger(ClientLogic.class.getName());
-    private static final String LOG_FILE_NAME = "Client.log";
+    private static final String LOG_FILE = "Client.log";
 
-    public ClientLogic(){
-        try{
-            FileHandler fileHandler = new FileHandler(LOG_FILE_NAME);
+    static {
+        try {
+            FileHandler fileHandler = new FileHandler(LOG_FILE);
             fileHandler.setFormatter(new SimpleFormatter());
             LOGGER.addHandler(fileHandler);
         } catch (IOException e) {
@@ -88,9 +88,11 @@ public class ClientLogic {
      */
     public static void connectionHandler(ClientController controller){
 
+        LOGGER.info("Starting connection handler");
+
         try {
 
-            LOGGER.info("Opening socket");
+            LOGGER.info("Connecting to server socket");
             Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
 
             Platform.runLater(() -> controller.setServerConnectLabel("Connection to Server established!"));
@@ -141,16 +143,16 @@ public class ClientLogic {
             while (true) {
 
                 LOGGER.info("Sending speed test");
-                writer.println(Double.parseDouble(controller.getConnectionTestLabel().getText()));
+                writer.println(Double.parseDouble(controller.getSpeedtestLabel().getText()));
 
                 Platform.runLater(() -> controller.setFormatDisable(false));
+
                 LOGGER.info("Reading files");
                 ArrayList<String> fileNames = (ArrayList<String>) objectReader.readObject();
-
                 Platform.runLater(() -> controller.setVideoList(fileNames));
 
+                //Wait until client has sent everything to the server
                 LOGGER.info("Reading ready message");
-
                 String READY = reader.readLine();
 
                     String protocol = controller.getProtocolBox().getValue();
@@ -169,24 +171,22 @@ public class ClientLogic {
                     String[] ffmpegCommand = {""};
 
                     if (protocol.equalsIgnoreCase("udp")) {
-
                         ffmpegCommand = new String[]{
                                 FFMPEG_DIR + "\\" + ".\\ffplay",
-                                "udp://" + socket.getInetAddress().getHostAddress() + ":" + FFMPEG_PORT
+                                "udp://" + socket.getInetAddress().getHostAddress() + ":" + FFMPEG_PORT,
                         };
 
                     } else if (protocol.equalsIgnoreCase("tcp")) {
-
                         ffmpegCommand = new String[]{
                                 FFMPEG_DIR + "\\" + ".\\ffplay",
-                                "tcp://" + socket.getInetAddress().getHostAddress() + ":" + FFMPEG_PORT
+                                "tcp://" + socket.getInetAddress().getHostAddress() + ":" + FFMPEG_PORT,
                         };
 
                     } else if (protocol.equalsIgnoreCase("rtp")) {
                         ffmpegCommand = new String[]{
                                 FFMPEG_DIR + "\\" + ".\\ffplay",
                                 "-protocol_whitelist", "file,rtp,udp",
-                                "-i", FFMPEG_DIR + "\\" + "video.sdp"
+                                "-i", "\"rtp://" + socket.getInetAddress().getHostAddress() + ":" + FFMPEG_PORT
                         };
                     }
 
@@ -196,8 +196,8 @@ public class ClientLogic {
                         ProcessBuilder processBuilder = new ProcessBuilder(ffmpegCommand);
 
                         processBuilder.redirectErrorStream(true);
-                        processBuilder.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(LOG_FILE_NAME)));
-                        processBuilder.redirectError(ProcessBuilder.Redirect.appendTo(new File(LOG_FILE_NAME)));
+                        processBuilder.redirectOutput(ProcessBuilder.Redirect.to(new File("FfmpegOUT" + LOG_FILE)));
+                        processBuilder.redirectError(ProcessBuilder.Redirect.to(new File("FfmpegERROR" + LOG_FILE)));
 
                         Process process = processBuilder.start();
 

@@ -29,8 +29,23 @@ public class ServerController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+
         setList();
-        new Thread(() -> ServerLogic.createFiles(this)).start();
+
+        Thread createFilesThread = new Thread(() -> ServerLogic.fileCreation(this));
+        createFilesThread.start();
+
+        Thread connectionHandlerThread = new Thread(() -> {
+            try{
+                createFilesThread.join();
+
+                ServerLogic.connectionHandler(this);
+            } catch (InterruptedException e) {
+                ServerLogic.LOGGER.severe("Thread interrupted: " + e.getMessage());
+            }
+        });
+
+        connectionHandlerThread.start();
     }
 
     /*
@@ -62,15 +77,14 @@ public class ServerController implements Initializable {
     public String[] getList(){
         return videoList.getItems().toArray(new String[0]);
     }
+
     public void setProgressBar(float progress){
         videoCreationProgress.setProgress(progress);
     }
-
     public void setVideosLabel(String text, String style) {
         videosLabel.setText(text);
         videosLabel.setStyle(style);
     }
-
     public void setClientLabel(String text, String style) {
         clientLabel.setText(text);
         clientLabel.setStyle(style);

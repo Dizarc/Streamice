@@ -17,7 +17,7 @@ public class ClientController implements Initializable {
     private Label serverConnectLabel;
 
     @FXML
-    private Label connectionTestLabel;
+    private Label speedtestLabel;
     @FXML
     private ProgressBar connectionProgress;
 
@@ -46,7 +46,8 @@ public class ClientController implements Initializable {
 
         new Thread(() -> ClientLogic.testSpeed(this)).start();
 
-        connectionTestLabel.textProperty().addListener((_, _, t1) ->
+        //when the speedtest is finished start the connection
+        speedtestLabel.textProperty().addListener((_, _, t1) ->
                 new Thread(() -> ClientLogic.connectionHandler(ClientController.this)).start()
         );
 
@@ -58,41 +59,6 @@ public class ClientController implements Initializable {
         protocolBox.setValue(null);
     }
 
-    public void setServerConnectLabel(String text) {
-        serverConnectLabel.setText(text);
-        serverConnectLabel.setStyle("-fx-text-fill: green");
-    }
-
-    public void setConnectionTestLabel(String text, String style) {
-        connectionTestLabel.setText(text);
-        connectionTestLabel.setStyle(style);
-    }
-
-    public void setTestProgressBar(float progress){
-        connectionProgress.setProgress(progress);
-    }
-
-    public void setFormatDisable(boolean flag){
-        formatLabel.setDisable(flag);
-        formatBox.setDisable(flag);
-    }
-
-    public void setVideoDisable(boolean flag){
-        videoLabel.setDisable(flag);
-        videoList.setDisable(flag);
-    }
-
-    public void setProtocolDisable(boolean flag){
-        protocolLabel.setDisable(flag);
-        protocolBox.setDisable(flag);
-    }
-
-    public void setVideoList(ArrayList<String> fileNames){
-        for(String fileName : fileNames){
-            videoList.getItems().add(fileName);
-        }
-    }
-
     public ListView<String> getVideoList() {
         return videoList;
     }
@@ -102,7 +68,36 @@ public class ClientController implements Initializable {
     public ChoiceBox<String> getProtocolBox(){
         return protocolBox;
     }
-    public Label getConnectionTestLabel(){
-        return connectionTestLabel;
+    public Label getSpeedtestLabel(){
+        return speedtestLabel;
+    }
+
+    public void setServerConnectLabel(String text) {
+        serverConnectLabel.setText(text);
+        serverConnectLabel.setStyle("-fx-text-fill: green");
+    }
+    public void setConnectionTestLabel(String text, String style) {
+        speedtestLabel.setText(text);
+        speedtestLabel.setStyle(style);
+    }
+    public void setTestProgressBar(float progress){
+        connectionProgress.setProgress(progress);
+    }
+    public void setFormatDisable(boolean flag){
+        formatLabel.setDisable(flag);
+        formatBox.setDisable(flag);
+    }
+    public void setVideoDisable(boolean flag){
+        videoLabel.setDisable(flag);
+        videoList.setDisable(flag);
+    }
+    public void setProtocolDisable(boolean flag){
+        protocolLabel.setDisable(flag);
+        protocolBox.setDisable(flag);
+    }
+    public void setVideoList(ArrayList<String> fileNames){
+        for(String fileName : fileNames){
+            videoList.getItems().add(fileName);
+        }
     }
 }
