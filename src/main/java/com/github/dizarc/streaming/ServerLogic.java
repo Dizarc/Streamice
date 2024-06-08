@@ -24,6 +24,17 @@ public class ServerLogic {
     static final String VIDEOS_DIR = "C:\\Users\\faruk\\Desktop\\sxoli\\6mina\\H8 mino\\polumesa\\Streaming\\src\\main\\resources\\Videos";
     static final String FFMPEG_DIR = "C:\\Users\\faruk\\Desktop\\sxoli\\6mina\\H8 mino\\polumesa\\ffmpeg\\bin";
 
+    static final int SERVER_PORT = 8334;
+    static final int FFMPEG_PORT = 8445;
+
+    //Since mkv's actual name is matroska we cannot use one string array...
+    static final String[] FORMATS = {"avi", "mp4", "matroska"};
+    static final String[] FORMAT_END = {"avi", "mp4", "mkv"};
+
+
+    static final Logger LOGGER = Logger.getLogger(ServerLogic.class.getName());
+    private static final String LOG_FILE = "Server.log";
+
     static final List<Pair<Integer, Integer>> RESOLUTIONS = Arrays.asList(
             new Pair<>(320, 240),
             new Pair<>(640, 360),
@@ -31,26 +42,6 @@ public class ServerLogic {
             new Pair<>(1280, 720),
             new Pair<>(1920, 1080)
     );
-
-    //Since mkv's actual name is matroska we cannot use one string array...
-    static final String[] FORMATS = {"avi", "mp4", "matroska"};
-    static final String[] FORMAT_END = {"avi", "mp4", "mkv"};
-
-    static class ResolutionFormat {
-        int resolution;
-        String format;
-
-        public ResolutionFormat(int resolution, String format) {
-            this.resolution = resolution;
-            this.format = format;
-        }
-    }
-
-    static final int SERVER_PORT = 8334;
-    static final int FFMPEG_PORT = 8445;
-
-    static final Logger LOGGER = Logger.getLogger(ServerLogic.class.getName());
-    private static final String LOG_FILE = "Server.log";
 
     static {
         try {
@@ -62,8 +53,18 @@ public class ServerLogic {
         }
     }
 
+    static class ResolutionFormat {
+        int resolution;
+        String format;
+
+        public ResolutionFormat(int resolution, String format) {
+            this.resolution = resolution;
+            this.format = format;
+        }
+    }
+
     /*
-        Creates the extra files and when completed calls the connection Handler.
+        Finds which file has the biggest resolution and its format and calls the function to create the missing files.
      */
     public static void fileCreation(ServerController controller) {
 
@@ -80,7 +81,7 @@ public class ServerLogic {
             Pattern fileNamePattern = Pattern.compile(pattern);
 
             //Put the highest resolution and its format for each video into a Map.
-            if (files != null && files.length > 0) {
+            if (files != null) {
                 for (File file : files) {
 
                     Matcher matcher = fileNamePattern.matcher(file.getName());
@@ -90,6 +91,8 @@ public class ServerLogic {
                         int resolution = Integer.parseInt(matcher.group(2));
                         String format = matcher.group(3);
 
+                        //if the current resolution and format do not exist in the highest resolution map for that name
+                        // or its resolution is bigger than the one on the highest resolution add it to the highest resolution map
                         ResolutionFormat currentResFormat = highestRes.get(name);
                         if (currentResFormat == null || resolution > currentResFormat.resolution) {
                             highestRes.put(name, new ResolutionFormat(resolution, format));
@@ -100,7 +103,7 @@ public class ServerLogic {
                 }
             }
 
-            if(highestRes.isEmpty()) {
+            if (highestRes.isEmpty()) {
 
                 LOGGER.info("No Videos inside directory!");
                 Platform.runLater(() -> controller.setVideosLabel("There are no videos in the directory!", "-fx-text-fill: red"));
@@ -215,10 +218,10 @@ public class ServerLogic {
 
                         LOGGER.info("sending videos");
                         String finalFormat = format;
-                        Platform.runLater(() -> controller.setClientLabel("Client chose format: " + finalFormat + "\n" + "Sending available files " + "\n" +"Waiting for video choice...", "-fx-text-fill: green"));
+                        Platform.runLater(() -> controller.setClientLabel("Client chose format: " + finalFormat + "\n" + "Sending available files " + "\n" + "Waiting for video choice...", "-fx-text-fill: green"));
 
-                        ArrayList<String> allFiles = getFilenamesForClient(controller, speedtest, format);
-                        objectWriter.writeObject(allFiles);
+                        ArrayList<String> availableFiles = getFilenamesForClient(controller, speedtest, format);
+                        objectWriter.writeObject(availableFiles);
 
                         //because .mkv has its name as matroska
                         if (format.equalsIgnoreCase("mkv"))
@@ -244,7 +247,7 @@ public class ServerLogic {
                         String finalProtocol = protocol;
                         Platform.runLater(() -> controller.setClientLabel("Chosen protocol: " + finalProtocol + "\n" + "Starting streaming...", "-fx-text-fill: green"));
 
-                        LOGGER.info("Starting streaming");
+                        LOGGER.info("Starting streaming preparations");
 
                         String[] ffmpegCommand = {""};
 
@@ -300,7 +303,6 @@ public class ServerLogic {
                             process.destroy();
 
                             LOGGER.info("Streaming done");
-                            Platform.runLater(() -> controller.setClientLabel("Streaming finished... \n" + "Waiting for further instructions...", "-fx-text-fill: green"));
 
                         } catch (IOException e) {
                             LOGGER.severe("FFmpeg error: " + e.getMessage());

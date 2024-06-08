@@ -18,19 +18,13 @@ import java.util.ArrayList;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
-/*
-    TODO:
-        1. For some reason the threads in clientController dont work. Find a way to make them work and also do the same coding in ServerController.
-        (I THINK IT WORKS BUT I HAVE NOT IMPLEMENTED IT IN THE SERVER SIDE)
-        2. Create a reset button which resets the client to right after the speed test so he can choose other videos.
-        3. Make it so when the video finishes the client does 2.
-        4. RTP playing issues....
- */
+
 public class ClientLogic {
 
-    static final int SERVER_PORT = 8334;
     static final String SERVER_HOST = "localhost";
-    private final static String SPEED_TEST_SERVER = "ftp://speedtest:speedtest@ftp.otenet.gr/test100Mb.db";
+    static final int SERVER_PORT = 8334;
+
+    static final String SPEED_TEST_SERVER = "ftp://speedtest:speedtest@ftp.otenet.gr/test100Mb.db";
 
     static final String FFMPEG_DIR = "C:\\Users\\faruk\\Desktop\\sxoli\\6mina\\H8 mino\\polumesa\\ffmpeg\\bin";
     static final int FFMPEG_PORT = 8445;
@@ -49,7 +43,7 @@ public class ClientLogic {
     }
 
     /*
-        Tests speed and calls the connection handler when completed.
+        Tests speed of the internet connection.
      */
     public static void testSpeed(ClientController controller){
 
@@ -78,6 +72,7 @@ public class ClientLogic {
             @Override
             public void onError(SpeedTestError speedTestError, String s) {
                 LOGGER.severe("Speedtest error: "+ speedTestError +" : " + s);
+                Platform.runLater(() -> controller.setServerLabel("Speed test ERROR", "-fx-text-fill: red"));
             }
         });
         speedTestSocket.startFixedDownload(SPEED_TEST_SERVER, 5000);
@@ -172,7 +167,7 @@ public class ClientLogic {
                             protocol = "rtp";
                     }
 
-                    LOGGER.info("Starting streaming");
+                    LOGGER.info("Starting streaming preparations");
 
                     String[] ffmpegCommand = {""};
 
