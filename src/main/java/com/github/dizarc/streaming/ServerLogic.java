@@ -172,7 +172,7 @@ public class ServerLogic {
             LOGGER.info("finished file creation");
 
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            LOGGER.severe("Failed to start ffmpeg: " + e.getMessage());
         }
     }
 
