@@ -38,7 +38,7 @@ public class ServerLogic {
     static final List<Pair<Integer, Integer>> RESOLUTIONS = Arrays.asList(
             new Pair<>(320, 240),
             new Pair<>(640, 360),
-            new Pair<>(640, 480),
+            new Pair<>(854, 480),
             new Pair<>(1280, 720),
             new Pair<>(1920, 1080)
     );
