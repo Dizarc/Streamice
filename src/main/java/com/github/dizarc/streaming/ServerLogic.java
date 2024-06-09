@@ -161,7 +161,6 @@ public class ServerLogic {
                     }
                 }
 
-
                 float percentage = (float) pos / highestRes.size();
                 Platform.runLater(() -> controller.setProgressBar(percentage));
             }
