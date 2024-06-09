@@ -20,7 +20,7 @@ It also supports three types of streaming protocols:
   
   * Real-time Transport Protocol - **RTP**
   
-The supported resolutions are:
+And finally the supported resolutions are:
   * 1920 x **1080**
     
   * 1280 x **720**
