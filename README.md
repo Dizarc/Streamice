@@ -31,8 +31,6 @@ And finally the supported resolutions are:
     
   * 320 x **240**
     
-Future improvements can be easily made such as adding more resolutions, formats and protocols.    
-We could also improve our player, instead of opening up a new window with the video streaming 
-we could integrate it to our own type of player which will have capabilities of moving to a particular time on the video, 
-volume control and even a start/stop functionality. With this type of improvement we could hopefully make it have better UI and functionality.
+Future improvements such as adding more resolutions, formats and protocols can be easily implemented.     
+We could also improve our player, instead of opening up a new window with the video streaming we could integrate it to our own type of player which will have capabilities of moving to a particular time on the video, volume control and even a start/stop functionality. With this type of improvement we could hopefully make it have better UI and functionality.
 
